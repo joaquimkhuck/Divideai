@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-const apiKey = process.env.ANTHROPIC_API_KEY_DIVIDE_AI;
+const apiKey = process.env.ANTHROPIC_API_KEY;
 
 export class BillReadError extends Error {}
 
@@ -33,7 +33,7 @@ export async function analyzeBillImage(
   imageBase64: string,
 ): Promise<ExtractedBill> {
   if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY_DIVIDE_AI is not configured");
+    throw new Error("ANTHROPIC_API_KEY is not configured");
   }
   const client = new Anthropic({ apiKey });
 
