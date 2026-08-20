@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/divide-ai/"
+title = "Divide Aí"
+description = "Divide Aí — app funcional para dividir a conta do restaurante por foto: IA lê os itens, cada pessoa marca o que comeu e cada um vê sua parte exata."
+version = "1.0.0"
+id = "artifacts/divide-ai"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/divide-ai/" ]
+localPort = 23884
+
+[services.development]
+run = "pnpm --filter @workspace/divide-ai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/divide-ai", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/divide-ai/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23884"
+BASE_PATH = "/divide-ai/"

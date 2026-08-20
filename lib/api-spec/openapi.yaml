@@ -1,0 +1,317 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: bills
+    description: Divide Aí bills (rolês)
+  - name: stats
+    description: Aggregated stats
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /bills/analyze:
+    post:
+      operationId: analyzeBill
+      tags: [bills]
+      summary: Analyze a bill photo with AI and extract items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BillPhoto"
+      responses:
+        "200":
+          description: Extracted bill draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillDraft"
+        "422":
+          description: Photo could not be read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /bills:
+    get:
+      operationId: listBills
+      tags: [bills]
+      summary: List bills (history of rolês)
+      responses:
+        "200":
+          description: Bills, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bill"
+    post:
+      operationId: createBill
+      tags: [bills]
+      summary: Create a bill with items, people and assignments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BillInput"
+      responses:
+        "201":
+          description: Created bill with computed per-person amounts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bill"
+  /bills/{id}:
+    get:
+      operationId: getBill
+      tags: [bills]
+      summary: Get one bill with items, people and assignments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Bill
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bill"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+    delete:
+      operationId: deleteBill
+      tags: [bills]
+      summary: Delete a bill (privacy guardrail)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+  /bills/{id}/people/{personId}/paid:
+    patch:
+      operationId: setPersonPaid
+      tags: [bills]
+      summary: Mark a person's share as paid or unpaid
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: personId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PersonPaidUpdate"
+      responses:
+        "200":
+          description: Updated bill
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bill"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /stats:
+    get:
+      operationId: getStats
+      tags: [stats]
+      summary: Aggregated stats for home and history
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stats"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    ApiMessage:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+    BillPhoto:
+      type: object
+      required: [imageBase64]
+      properties:
+        imageBase64:
+          type: string
+          description: Bill photo as base64 (data URL prefix allowed)
+    DraftItem:
+      type: object
+      required: [description, quantity, unitPriceCents]
+      properties:
+        description: { type: string }
+        quantity: { type: integer, minimum: 1 }
+        unitPriceCents: { type: integer, minimum: 0 }
+    BillDraft:
+      type: object
+      required: [items, serviceFeePercent, couvertCents]
+      properties:
+        restaurantName: { type: ["string", "null"] }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DraftItem"
+        serviceFeePercent:
+          type: number
+          description: e.g. 10 for 10%
+        couvertCents:
+          type: integer
+          description: Total couvert/cover charge in cents (not per person)
+        detectedTotalCents:
+          type: ["integer", "null"]
+          description: Total printed on the bill, if the AI could read it
+    BillItemInput:
+      type: object
+      required: [description, quantity, unitPriceCents, personIndexes]
+      properties:
+        description: { type: string }
+        quantity: { type: integer, minimum: 1 }
+        unitPriceCents: { type: integer, minimum: 0 }
+        personIndexes:
+          type: array
+          description: Indexes into the people array of who shares this item
+          items: { type: integer, minimum: 0 }
+    BillPersonInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1 }
+    BillInput:
+      type: object
+      required: [items, people, serviceFeePercent, couvertCents]
+      properties:
+        restaurantName: { type: ["string", "null"] }
+        serviceFeePercent: { type: number }
+        couvertCents: { type: integer, minimum: 0 }
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/BillItemInput"
+        people:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/BillPersonInput"
+    BillItem:
+      type: object
+      required: [id, description, quantity, unitPriceCents, totalCents, personIds]
+      properties:
+        id: { type: integer }
+        description: { type: string }
+        quantity: { type: integer }
+        unitPriceCents: { type: integer }
+        totalCents: { type: integer }
+        personIds:
+          type: array
+          items: { type: integer }
+    BillPerson:
+      type: object
+      required: [id, name, amountCents, paid]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        amountCents: { type: integer }
+        paid: { type: boolean }
+        paidAt: { type: ["string", "null"], format: date-time }
+    Bill:
+      type: object
+      required:
+        [id, restaurantName, createdAt, serviceFeePercent, couvertCents, totalCents, settled, items, people]
+      properties:
+        id: { type: integer }
+        restaurantName: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        serviceFeePercent: { type: number }
+        couvertCents: { type: integer }
+        totalCents:
+          type: integer
+          description: Grand total including service fee and couvert
+        settled:
+          type: boolean
+          description: True when every person has paid
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/BillItem"
+        people:
+          type: array
+          items:
+            $ref: "#/components/schemas/BillPerson"
+    PersonPaidUpdate:
+      type: object
+      required: [paid]
+      properties:
+        paid: { type: boolean }
+    Stats:
+      type: object
+      required: [billCount, totalSplitCents, pendingCents, pendingPeople]
+      properties:
+        billCount: { type: integer }
+        totalSplitCents: { type: integer }
+        pendingCents:
+          type: integer
+          description: Sum of unpaid shares across all bills
+        pendingPeople:
+          type: array
+          description: People who still owe, across bills
+          items:
+            $ref: "#/components/schemas/PendingPerson"
+    PendingPerson:
+      type: object
+      required: [billId, personId, name, amountCents]
+      properties:
+        billId: { type: integer }
+        personId: { type: integer }
+        name: { type: string }
+        amountCents: { type: integer }
+        restaurantName: { type: ["string", "null"] }

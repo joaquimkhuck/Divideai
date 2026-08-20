@@ -1,0 +1,19 @@
+kind = "design-system"
+previewPath = "/divide-ai-ds/"
+title = "Divide Aí Design System"
+description = "The Divide Aí design system: tokens, components, and style guide used to build the Divide Aí bill-splitting app mockups."
+version = "1.0.0"
+id = "artifacts/divide-ai-ds"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/divide-ai-ds/" ]
+localPort = 23625
+
+[services.development]
+run = "pnpm --filter @workspace/divide-ai-ds run dev"
+
+[services.env]
+PORT = "23625"
+BASE_PATH = "/divide-ai-ds/"
