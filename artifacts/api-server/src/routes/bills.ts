@@ -1,11 +1,13 @@
+import { createHash } from "node:crypto";
 import { Router, type IRouter } from "express";
-import { inArray, desc, eq, and } from "drizzle-orm";
+import { inArray, desc, eq, and, sql } from "drizzle-orm";
 import {
   db,
   billsTable,
   billItemsTable,
   billPeopleTable,
   itemAssignmentsTable,
+  aiExtractionCacheTable,
   type BillRow,
 } from "@workspace/db";
 import {
@@ -130,9 +132,49 @@ router.post("/bills/analyze", analyzeLimiter, async (req, res) => {
     res.status(422).json({ message: "Imagem grande demais ou inválida." });
     return;
   }
+  // Cache de extração: mesma imagem, mesmo resultado, sem pagar a chamada de novo.
+  // É best-effort de propósito — se o banco falhar, a rota segue e paga a chamada.
+  const hash = createHash("sha256").update(raw).digest("hex");
+  try {
+    const [cached] = await db
+      .select()
+      .from(aiExtractionCacheTable)
+      .where(eq(aiExtractionCacheTable.imageHash, hash))
+      .limit(1);
+    if (cached) {
+      await db
+        .update(aiExtractionCacheTable)
+        .set({ hits: sql`${aiExtractionCacheTable.hits} + 1` })
+        .where(eq(aiExtractionCacheTable.id, cached.id));
+      res.setHeader("X-Cache", "HIT");
+      res.json(AnalyzeBillResponse.parse(cached.result));
+      return;
+    }
+  } catch {
+    // cache indisponível: segue para a IA
+  }
+
   try {
     const draft = await analyzeBillImage(imageBase64);
-    res.json(AnalyzeBillResponse.parse(draft));
+    // O schema gerado é um zod.object puro, então `usage` é descartado aqui:
+    // o corpo da resposta continua idêntico ao do contrato OpenAPI.
+    const out = AnalyzeBillResponse.parse(draft);
+    try {
+      await db
+        .insert(aiExtractionCacheTable)
+        .values({
+          imageHash: hash,
+          result: out,
+          model: draft.usage.model,
+          inputTokens: draft.usage.inputTokens,
+          outputTokens: draft.usage.outputTokens,
+        })
+        .onConflictDoNothing();
+    } catch {
+      // não gravou no cache: a resposta ao usuário não depende disso
+    }
+    res.setHeader("X-Cache", "MISS");
+    res.json(out);
   } catch (err) {
     if (err instanceof BillReadError) {
       res.status(422).json({ message: "Não conseguimos ler essa foto." });
