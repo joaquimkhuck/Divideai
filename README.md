@@ -12,6 +12,7 @@ Fluxo core: **foto da conta → IA extrai os itens → grupo atribui itens a pes
 - [API](#api)
 - [Motor de cálculo](#motor-de-cálculo)
 - [Modelo de dados](#modelo-de-dados)
+- [Custo da feature de IA](#custo-da-feature-de-ia)
 - [Design system e mockups](#design-system-e-mockups)
 - [Documentação](#documentação)
 - [Time](#time)
@@ -109,6 +110,49 @@ Schema Drizzle em `lib/db/src/schema/`:
 - `bill_items`: description, quantity, unit_price_cents
 - `bill_people`: name, amount_cents, paid, paid_at
 - `item_assignments`: item ↔ pessoa (N:N)
+
+## Custo da feature de IA
+
+A leitura da foto é a única chamada paga do produto, em `POST /bills/analyze`. A imagem domina a
+conta: das ~2.800 tokens de entrada de uma análise, cerca de 2.500 são a foto já reduzida a 1600px
+pelo cliente e redimensionada pela API. A saída é o JSON dos itens, ~400 tokens.
+
+| | 1 chamada | mil chamadas |
+|---|---|---|
+| Claude Sonnet 4.5, o modelo em uso (US$ 3,00/1M entrada e US$ 15,00/1M saída) | US$ 0,014 | US$ 14,37 |
+| gpt-5.6-luna, modelo de referência (US$ 0,20/1M entrada e US$ 1,20/1M saída) | US$ 0,001 | US$ 1,04 |
+
+Escolhemos um modelo de visão forte e não o mais barato porque a tarefa não é classificar texto
+limpo: é ler comanda de restaurante brasileiro fotografada torta, com papel amassado, térmico
+apagado e abreviação de garçom. Erro de centavo aqui quebra o invariante do motor de cálculo e
+o usuário perde a confiança na conta inteira. O custo por chamada continua abaixo de dois centavos
+de dólar, e a alavanca que importa nesta fase não é o preço do modelo, é o número de chamadas.
+
+### Não pagar a mesma leitura duas vezes
+
+`ai_extraction_cache` guarda o resultado de cada extração, chaveado pelo sha256 do base64 da
+imagem, junto com os tokens consumidos. Antes de chamar a API, a rota procura o hash: se acha,
+responde do banco em milissegundos, incrementa `hits` e não gasta nada. O header `X-Cache`
+devolve `HIT` ou `MISS` em cada resposta.
+
+Ressalva honesta: o cache é de bytes exatos. Reenviar a mesma foto do mesmo aparelho bate, porque
+o downscale do cliente é determinístico, e esse é o caso real de nova tentativa, de recarregar a
+tela e de demonstração. A mesma cena fotografada por dois celulares diferentes dá miss. Resolver
+isso exigiria hash perceptual, desproporcional nesta fase.
+
+Números medidos em uso (rodar a consulta abaixo e atualizar):
+
+```sql
+SELECT count(*) AS chamadas_pagas,
+       coalesce(sum(hits), 0) AS chamadas_evitadas,
+       round(avg(input_tokens)) AS tokens_entrada,
+       round(avg(output_tokens)) AS tokens_saida,
+       round((sum(hits * input_tokens) * 3.0
+            + sum(hits * output_tokens) * 15.0) / 1e6, 4) AS usd_economizados
+FROM ai_extraction_cache;
+```
+
+Preços conferidos na tabela oficial da Anthropic em 10/09/2026.
 
 ## Design system e mockups
 
