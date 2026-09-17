@@ -9,6 +9,7 @@ Fluxo core: **foto da conta → IA extrai os itens → grupo atribui itens a pes
 - [Sobre](#sobre)
 - [Estrutura do monorepo](#estrutura-do-monorepo)
 - [Como rodar](#como-rodar)
+- [Publicação](#publicação)
 - [API](#api)
 - [Motor de cálculo](#motor-de-cálculo)
 - [Modelo de dados](#modelo-de-dados)
@@ -82,6 +83,15 @@ pnpm --filter @workspace/db run push
 | `SESSION_SECRET` | Segredo usado pelas sessões do servidor | Sim |
 | `STRIPE_SECRET_KEY` | Chave de teste do Stripe para pagar a parte via Checkout | Não |
 | `PUBLIC_APP_URL` | URL pública usada no retorno do Checkout | Não |
+
+## Publicação
+
+App publicado em **https://divideai.pangeia.cloud**, fora do editor do Replit.
+
+- Hospedagem: container no Coolify (VPS), montado pelo `Dockerfile` da raiz: Caddy entrega o front e repassa `/api` para a API Express, com Postgres próprio. Deploy a cada push no `main`.
+- HTTPS: certificado Let's Encrypt emitido e renovado automaticamente.
+- Domínio: `pangeia.cloud`, registrado na Hostinger. Dono da conta: Estevão Antunes. **Vence em 23/01/2027.** O subdomínio `divideai` aponta por registro A para o servidor.
+- Chaves (`STRIPE_SECRET_KEY`, `CLERK_SECRET_KEY`, `ANTHROPIC_API_KEY_2`) ficam só nas variáveis de ambiente do servidor; nenhuma vai para o navegador nem para o repositório.
 
 ## API
 
