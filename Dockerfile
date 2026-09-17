@@ -1,7 +1,9 @@
 # Deploy fora do Replit (Coolify): um container com o front estatico (Caddy)
 # e a API Express, na mesma origem. /api vai para a API, o resto e o app.
 FROM node:24-slim
-RUN corepack enable && corepack prepare pnpm@10 --activate
+RUN apt-get update && apt-get install -y --no-install-recommends wget \
+ && rm -rf /var/lib/apt/lists/* \
+ && corepack enable && corepack prepare pnpm@10 --activate
 COPY --from=caddy:2 /usr/bin/caddy /usr/bin/caddy
 WORKDIR /app
 
