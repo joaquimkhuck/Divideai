@@ -75,7 +75,7 @@ pnpm --filter @workspace/db run push
 | Variável | Descrição | Obrigatória |
 |---|---|---|
 | `DATABASE_URL` | Connection string do PostgreSQL | Sim |
-| `ANTHROPIC_API_KEY` | Chave da API Anthropic (leitura da foto da conta) | Sim |
+| `ANTHROPIC_API_KEY_2` | Chave da API Anthropic (leitura da foto da conta) | Sim |
 | `CLERK_SECRET_KEY` | Chave privada do Clerk para login opcional | Não |
 | `CLERK_PUBLISHABLE_KEY` | Chave pública do Clerk usada pela API | Não |
 | `VITE_CLERK_PUBLISHABLE_KEY` | Chave pública do Clerk para o app web | Não |
