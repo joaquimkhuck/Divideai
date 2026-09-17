@@ -28,15 +28,21 @@ Mockups and design system for Divide Aí — an app for groups of friends to spl
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- DB schema: `lib/db/src/schema/` (bills.ts, accounts.ts) — dev changes go live via `pnpm --filter @workspace/db run push`
+- API contracts: `lib/api-spec/openapi.yaml` → codegen to `@workspace/api-zod` + `@workspace/api-client-react`
+- Auth: Replit-managed Clerk. Server: `artifacts/api-server/src/middlewares/auth.ts` (+ `clerkProxyMiddleware.ts`); web wiring in `artifacts/divide-ai/src/App.tsx`
+- Account pages: `artifacts/divide-ai/src/pages/{entrar,creditos,perfil,auth}.tsx`
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- No login before the first split (PRD guardrail): anonymous sessions use the `divideai_owner` httpOnly cookie; the Entrar prompt only appears after a bill is closed.
+- Bill ownership: `bills.user_id` (Clerk id) wins when set; otherwise scoped by owner cookie with `user_id IS NULL`. `POST /api/account/claim` migrates anonymous bills idempotently on sign-in.
+- Credit model: signed-in accounts start with 3 free credits; each successful photo analysis spends 1 (402 when empty). Anonymous users keep the IP rate limit only. Credit purchases are not wired to payments yet (button shows "em breve").
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Core flow: photo → AI-read items → assignment → per-person value → Pix charge via WhatsApp → history
+- Optional account (after first split): saves rolês across devices, Perfil (name/email, editable Pix key used in WhatsApp charges, stats, sign out, delete all data) and Créditos (real balance, packages listed)
 
 ## User preferences
 

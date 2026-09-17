@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, inArray } from "drizzle-orm";
 import { db, billsTable, billPeopleTable } from "@workspace/db";
 import { GetStatsResponse } from "@workspace/api-zod";
+import { billOwnerWhere } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -9,7 +10,7 @@ router.get("/stats", async (req, res) => {
   const bills = await db
     .select()
     .from(billsTable)
-    .where(eq(billsTable.ownerToken, req.ownerToken));
+    .where(billOwnerWhere(req));
   const pendingRows = bills.length
     ? await db
         .select({

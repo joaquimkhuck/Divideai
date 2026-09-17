@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Receipt, ChevronLeft, Trash2, Copy, CreditCard } from "lucide-react";
+import { Check, Receipt, ChevronLeft, Trash2, Copy } from "lucide-react";
 import { Button } from "@workspace/divide-ai-ds/components/ui/button";
 import { Card } from "@workspace/divide-ai-ds/components/ui/card";
 import { Badge } from "@workspace/divide-ai-ds/components/ui/badge";
@@ -20,7 +20,6 @@ import {
   useDeleteBill,
   getListBillsQueryKey,
   getGetStatsQueryKey,
-  useCreateCheckoutSession,
 } from "@workspace/api-client-react";
 import type { Bill, BillPerson } from "@workspace/api-client-react";
 import {
@@ -37,7 +36,12 @@ import { PhoneShell } from "@/components/phone-shell";
 import { formatCents } from "@/lib/money";
 import { formatShortDay, formatRoleDate } from "@/lib/date";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@clerk/react";
+import { UserRound } from "lucide-react";
+import { useGetAccount, getGetAccountQueryKey } from "@workspace/api-client-react";
+import { ENTRAR_DISMISSED_KEY } from "@/pages/entrar";
 
+// Fallback quando não há conta/chave Pix cadastrada no Perfil.
 const PIX_KEY = "divideai@pix.com.br";
 
 export default function Role() {
@@ -59,7 +63,21 @@ export default function Role() {
 
   const setPaid = useSetPersonPaid();
   const deleteBill = useDeleteBill();
-  const checkout = useCreateCheckoutSession();
+
+  const { isLoaded, isSignedIn } = useAuth();
+  const { data: account } = useGetAccount({
+    query: {
+      queryKey: getGetAccountQueryKey(),
+      enabled: Boolean(isLoaded && isSignedIn),
+    },
+  });
+  const pixKey = account?.pixKey || PIX_KEY;
+
+  // Convite opcional para guardar o rolê (só depois da primeira conta fechada).
+  const showSavePrompt =
+    isLoaded &&
+    !isSignedIn &&
+    localStorage.getItem(ENTRAR_DISMISSED_KEY) !== "1";
 
   const peopleSum = useMemo(
     () => (bill?.people ?? []).reduce((s, p) => s + p.amountCents, 0),
@@ -92,23 +110,8 @@ export default function Role() {
     const place = bill?.restaurantName ? ` do ${bill.restaurantName}` : "";
     const msg = `Oi, ${person.name}! Fechei a conta${place} no Divide Aí. Sua parte deu ${formatCents(
       person.amountCents
-    )}. Pode mandar no Pix: ${PIX_KEY} 🙏`;
+    )}. Pode mandar no Pix: ${pixKey} 🙏`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
-  };
-
-  const pagarComStripe = (person: BillPerson) => {
-    checkout.mutate(
-      { data: { billId, personId: person.id } },
-      {
-        onSuccess: ({ url }) => window.location.assign(url),
-        onError: () =>
-          toast({
-            title: "Não consegui abrir o pagamento",
-            description: "Confira se o Stripe está configurado em modo teste.",
-            variant: "destructive",
-          }),
-      },
-    );
   };
 
   const removerRole = () => {
@@ -210,7 +213,35 @@ export default function Role() {
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
 
-      {/* Settlement rows — tap a person to charge them */}
+      {showSavePrompt && (
+        <button
+          type="button"
+          data-testid="button-save-prompt"
+          onClick={() =>
+            setLocation("/entrar", {
+              state: {
+                restaurantName: bill.restaurantName,
+                from: `/role/${bill.id}`,
+              },
+            })
+          }
+          className="mt-4 flex w-full items-center gap-3 rounded-3xl border border-border bg-card p-4 text-left"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
+            <UserRound className="h-5 w-5" />
+          </span>
+          <span>
+            <span className="block text-[15px] font-bold">
+              Quer guardar esse rolê?
+            </span>
+            <span className="block text-sm text-muted-foreground">
+              Crie uma conta e acompanhe quem ainda deve
+            </span>
+          </span>
+        </button>
+      )}
+
+      {/* Settlement rows — tap a person to charge or mark payment inline */}
       <Card className="mt-6 px-4">
         <div className="flex items-center justify-between border-b border-border py-4">
           <div className="flex items-center gap-2 text-muted-foreground">
@@ -226,19 +257,39 @@ export default function Role() {
         </div>
         <div className="divide-y divide-border">
           {bill.people.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              data-testid={`row-person-${p.id}`}
-              onClick={() => setSelected(p)}
-              className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl"
-            >
-              <SettlementRow
-                name={p.name}
-                value={formatCents(p.amountCents)}
-                paid={p.paid}
-              />
-            </button>
+            <div key={p.id} className="flex items-center gap-2">
+              <button
+                type="button"
+                data-testid={`row-person-${p.id}`}
+                onClick={() => setSelected(p)}
+                className="min-w-0 flex-1 rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <SettlementRow
+                  name={p.name}
+                  value={formatCents(p.amountCents)}
+                  paid={p.paid}
+                  className="gap-2"
+                />
+              </button>
+              <Button
+                type="button"
+                size="sm"
+                variant={p.paid ? "default" : "secondary"}
+                aria-label={
+                  p.paid
+                    ? `Marcar ${p.name} como não pago`
+                    : `Marcar ${p.name} como pago`
+                }
+                aria-pressed={p.paid}
+                data-testid={`button-toggle-paid-${p.id}`}
+                disabled={setPaid.isPending}
+                onClick={() => markPaid(p, !p.paid)}
+                className="h-9 shrink-0 rounded-full px-3 text-xs"
+              >
+                {p.paid && <Check className="h-3.5 w-3.5" />}
+                Pago
+              </Button>
+            </div>
           ))}
         </div>
       </Card>
@@ -329,7 +380,7 @@ export default function Role() {
 
               <div className="mt-6">
                 <ChargeSheetPixField
-                  pixKey={PIX_KEY}
+                  pixKey={pixKey}
                   label="Sua chave Pix"
                   data-testid="button-copy-pix"
                   onCopied={() =>
@@ -345,16 +396,6 @@ export default function Role() {
                   onClick={() => cobrarWhatsapp(selected)}
                 >
                   Cobrar no WhatsApp
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  data-testid="button-stripe-checkout"
-                  disabled={checkout.isPending}
-                  onClick={() => pagarComStripe(selected)}
-                >
-                  <CreditCard className="h-4 w-4" />
-                  {checkout.isPending ? "Abrindo pagamento..." : "Pagar com Stripe (teste)"}
                 </Button>
                 {selected.paid ? (
                   <Button

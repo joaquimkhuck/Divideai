@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { Camera, History, Images } from "lucide-react";
+import { Camera, History, Images, UserRound } from "lucide-react";
 import { Button } from "@workspace/divide-ai-ds/components/ui/button";
 import { useGetStats, getGetStatsQueryKey } from "@workspace/api-client-react";
 import { PhoneShell } from "@/components/phone-shell";
@@ -9,10 +9,9 @@ import { fileToDownscaledBase64 } from "@/lib/image";
 import { formatCents } from "@/lib/money";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@workspace/divide-ai-ds/lib/utils";
-import { AccountButton } from "@/components/account-button";
+import { useAuth } from "@clerk/react";
 
 const MAX_SIDE = 1600;
-const clerkEnabled = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -27,6 +26,7 @@ export default function Home() {
     query: { queryKey: getGetStatsQueryKey() },
   });
 
+  const { isLoaded, isSignedIn } = useAuth();
   const pendingCount = stats?.pendingPeople?.length ?? 0;
   const pendingCents = stats?.pendingCents ?? 0;
 
@@ -127,7 +127,17 @@ export default function Home() {
               </span>
             </button>
           )}
-          <AccountButton enabled={clerkEnabled} />
+          {isLoaded && isSignedIn && (
+            <button
+              type="button"
+              aria-label="Perfil"
+              data-testid="button-perfil"
+              onClick={() => setLocation("/perfil")}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-muted-foreground"
+            >
+              <UserRound className="h-5 w-5" />
+            </button>
+          )}
         </div>
       </header>
 

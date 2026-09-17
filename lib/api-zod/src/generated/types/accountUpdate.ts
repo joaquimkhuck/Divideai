@@ -6,7 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CheckoutSession {
-  sessionId: string;
-  url: string;
+export interface AccountUpdate {
+  /**
+     * @maxLength 140
+     * @nullable
+     */
+  pixKey?: string | null;
 }

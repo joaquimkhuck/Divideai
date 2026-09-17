@@ -10,8 +10,6 @@ export interface ExtractedBill {
   serviceFeePercent: number;
   couvertCents: number;
   detectedTotalCents: number | null;
-  /** Consumo da chamada, para o cache de extração medir custo. Descartado na resposta HTTP. */
-  usage: { inputTokens: number; outputTokens: number; model: string };
 }
 
 const PROMPT = `Você lê fotos de comandas/contas de restaurantes brasileiros.
@@ -102,10 +100,5 @@ export async function analyzeBillImage(
       obj.detectedTotalCents == null
         ? null
         : Math.max(0, Math.round(Number(obj.detectedTotalCents) || 0)),
-    usage: {
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-      model: response.model,
-    },
   };
 }

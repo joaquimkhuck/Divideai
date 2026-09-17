@@ -56,7 +56,10 @@ export default function Revisar() {
 
   const canContinue =
     draft.items.length > 0 &&
-    draft.items.every((it) => it.description.trim() && it.unitPriceCents >= 0);
+    draft.items.every(
+      (it) =>
+        it.description.trim() && it.quantity >= 1 && it.unitPriceCents >= 0,
+    );
 
   return (
     <PhoneShell>
@@ -110,15 +113,18 @@ export default function Revisar() {
                   className="h-11 min-w-0 flex-1 text-[15px]"
                 />
                 <Input
-                  value={String(item.quantity)}
-                  onChange={(e) =>
+                  value={item.quantity === 0 ? "" : String(item.quantity)}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "");
                     updateItem(item.key, {
-                      quantity: Math.max(
-                        1,
-                        Number(e.target.value.replace(/\D/g, "")) || 1
-                      ),
-                    })
-                  }
+                      quantity: digits === "" ? 0 : Math.max(1, Number(digits)),
+                    });
+                  }}
+                  onBlur={() => {
+                    if (item.quantity < 1) {
+                      updateItem(item.key, { quantity: 1 });
+                    }
+                  }}
                   aria-label="Quantidade"
                   inputMode="numeric"
                   data-testid={`input-qty-${item.key}`}

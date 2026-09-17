@@ -47,7 +47,3 @@ Thumbs.db
 # Replit
 .cache/
 .local/
-
-# Env (segredos nunca sobem; ver .env.example)
-.env
-.env.local

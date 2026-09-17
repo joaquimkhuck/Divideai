@@ -20,15 +20,14 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  Account,
+  AccountUpdate,
   ApiMessage,
-  AuthMe,
   Bill,
   BillDraft,
   BillInput,
   BillPhoto,
-  CheckoutSession,
-  CheckoutSessionInput,
-  CheckoutSessionStatus,
+  ClaimResult,
   HealthStatus,
   PersonPaidUpdate,
   Stats
@@ -580,6 +579,296 @@ export const useSetPersonPaid = <TError = ErrorType<ApiMessage>,
       return useMutation(getSetPersonPaidMutationOptions(options));
     }
 
+export const getGetAccountUrl = () => {
+
+
+
+
+  return `/api/account`
+}
+
+/**
+ * @summary Get the signed-in user's account (auto-creates on first call)
+ */
+export const getAccount = async ( options?: Parameters<typeof customFetch>[1]): Promise<Account> => {
+
+  return customFetch<Account>(getGetAccountUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAccountQueryKey = () => {
+    return [
+    `/api/account`
+    ] as const;
+    }
+
+
+export const getGetAccountQueryOptions = <TData = Awaited<ReturnType<typeof getAccount>>, TError = ErrorType<ApiMessage>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAccount>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAccountQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAccount>>> = ({ signal }) => getAccount({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAccount>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAccountQueryResult = NonNullable<Awaited<ReturnType<typeof getAccount>>>
+export type GetAccountQueryError = ErrorType<ApiMessage>
+
+
+/**
+ * @summary Get the signed-in user's account (auto-creates on first call)
+ */
+
+export function useGetAccount<TData = Awaited<ReturnType<typeof getAccount>>, TError = ErrorType<ApiMessage>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAccount>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAccountQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAccountUrl = () => {
+
+
+
+
+  return `/api/account`
+}
+
+/**
+ * @summary Update account profile (Pix key)
+ */
+export const updateAccount = async (accountUpdate: AccountUpdate, options?: Parameters<typeof customFetch>[1]): Promise<Account> => {
+
+  return customFetch<Account>(getUpdateAccountUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(accountUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAccountMutationOptions = <TError = ErrorType<ApiMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAccount>>, TError,{data: BodyType<AccountUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAccount>>, TError,{data: BodyType<AccountUpdate>}, TContext> => {
+
+const mutationKey = ['updateAccount'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAccount>>, {data: BodyType<AccountUpdate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateAccount(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAccountMutationResult = NonNullable<Awaited<ReturnType<typeof updateAccount>>>
+    export type UpdateAccountMutationBody = BodyType<AccountUpdate>
+    export type UpdateAccountMutationError = ErrorType<ApiMessage>
+
+    /**
+ * @summary Update account profile (Pix key)
+ */
+export const useUpdateAccount = <TError = ErrorType<ApiMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAccount>>, TError,{data: BodyType<AccountUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAccount>>,
+        TError,
+        {data: BodyType<AccountUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateAccountMutationOptions(options));
+    }
+
+export const getClaimBillsUrl = () => {
+
+
+
+
+  return `/api/account/claim`
+}
+
+/**
+ * @summary Migrate the anonymous session's bills to the signed-in account
+ */
+export const claimBills = async ( options?: Parameters<typeof customFetch>[1]): Promise<ClaimResult> => {
+
+  return customFetch<ClaimResult>(getClaimBillsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getClaimBillsMutationOptions = <TError = ErrorType<ApiMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof claimBills>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof claimBills>>, TError,void, TContext> => {
+
+const mutationKey = ['claimBills'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof claimBills>>, void> = () => {
+
+
+          return  claimBills(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClaimBillsMutationResult = NonNullable<Awaited<ReturnType<typeof claimBills>>>
+
+    export type ClaimBillsMutationError = ErrorType<ApiMessage>
+
+    /**
+ * @summary Migrate the anonymous session's bills to the signed-in account
+ */
+export const useClaimBills = <TError = ErrorType<ApiMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof claimBills>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof claimBills>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getClaimBillsMutationOptions(options));
+    }
+
+export const getDeleteAccountDataUrl = () => {
+
+
+
+
+  return `/api/account/data`
+}
+
+/**
+ * @summary Delete all bills and profile data of the signed-in user
+ */
+export const deleteAccountData = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteAccountDataUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteAccountDataMutationOptions = <TError = ErrorType<ApiMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAccountData>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAccountData>>, TError,void, TContext> => {
+
+const mutationKey = ['deleteAccountData'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAccountData>>, void> = () => {
+
+
+          return  deleteAccountData(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAccountDataMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAccountData>>>
+
+    export type DeleteAccountDataMutationError = ErrorType<ApiMessage>
+
+    /**
+ * @summary Delete all bills and profile data of the signed-in user
+ */
+export const useDeleteAccountData = <TError = ErrorType<ApiMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAccountData>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAccountData>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDeleteAccountDataMutationOptions(options));
+    }
+
 export const getGetStatsUrl = () => {
 
 
@@ -645,231 +934,6 @@ export function useGetStats<TData = Awaited<ReturnType<typeof getStats>>, TError
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetStatsQueryOptions(options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
-
-export const getGetAuthMeUrl = () => {
-
-
-
-
-  return `/api/auth/me`
-}
-
-/**
- * @summary Get the current authentication state
- */
-export const getAuthMe = async ( options?: Parameters<typeof customFetch>[1]): Promise<AuthMe> => {
-
-  return customFetch<AuthMe>(getGetAuthMeUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetAuthMeQueryKey = () => {
-    return [
-    `/api/auth/me`
-    ] as const;
-    }
-
-
-export const getGetAuthMeQueryOptions = <TData = Awaited<ReturnType<typeof getAuthMe>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAuthMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetAuthMeQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAuthMe>>> = ({ signal }) => getAuthMe({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAuthMe>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetAuthMeQueryResult = NonNullable<Awaited<ReturnType<typeof getAuthMe>>>
-export type GetAuthMeQueryError = ErrorType<unknown>
-
-
-/**
- * @summary Get the current authentication state
- */
-
-export function useGetAuthMe<TData = Awaited<ReturnType<typeof getAuthMe>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAuthMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getGetAuthMeQueryOptions(options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
-
-export const getCreateCheckoutSessionUrl = () => {
-
-
-
-
-  return `/api/payments/checkout-session`
-}
-
-/**
- * @summary Create a Stripe Checkout Session for one person's share
- */
-export const createCheckoutSession = async (checkoutSessionInput: CheckoutSessionInput, options?: Parameters<typeof customFetch>[1]): Promise<CheckoutSession> => {
-
-  return customFetch<CheckoutSession>(getCreateCheckoutSessionUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(checkoutSessionInput)
-  }
-);}
-
-
-
-
-
-export const getCreateCheckoutSessionMutationOptions = <TError = ErrorType<ApiMessage>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCheckoutSession>>, TError,{data: BodyType<CheckoutSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createCheckoutSession>>, TError,{data: BodyType<CheckoutSessionInput>}, TContext> => {
-
-const mutationKey = ['createCheckoutSession'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCheckoutSession>>, {data: BodyType<CheckoutSessionInput>}> = (props) => {
-          const {data} = props ?? {};
-
-          return  createCheckoutSession(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CreateCheckoutSessionMutationResult = NonNullable<Awaited<ReturnType<typeof createCheckoutSession>>>
-    export type CreateCheckoutSessionMutationBody = BodyType<CheckoutSessionInput>
-    export type CreateCheckoutSessionMutationError = ErrorType<ApiMessage>
-
-    /**
- * @summary Create a Stripe Checkout Session for one person's share
- */
-export const useCreateCheckoutSession = <TError = ErrorType<ApiMessage>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCheckoutSession>>, TError,{data: BodyType<CheckoutSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof createCheckoutSession>>,
-        TError,
-        {data: BodyType<CheckoutSessionInput>},
-        TContext
-      > => {
-      return useMutation(getCreateCheckoutSessionMutationOptions(options));
-    }
-
-export const getGetCheckoutSessionUrl = (sessionId: string,) => {
-
-
-
-
-  return `/api/payments/checkout-session/${sessionId}`
-}
-
-/**
- * @summary Read the status of a Stripe Checkout Session
- */
-export const getCheckoutSession = async (sessionId: string, options?: Parameters<typeof customFetch>[1]): Promise<CheckoutSessionStatus> => {
-
-  return customFetch<CheckoutSessionStatus>(getGetCheckoutSessionUrl(sessionId),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetCheckoutSessionQueryKey = (sessionId: string,) => {
-    return [
-    `/api/payments/checkout-session/${sessionId}`
-    ] as const;
-    }
-
-
-export const getGetCheckoutSessionQueryOptions = <TData = Awaited<ReturnType<typeof getCheckoutSession>>, TError = ErrorType<ApiMessage>>(sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCheckoutSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetCheckoutSessionQueryKey(sessionId);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCheckoutSession>>> = ({ signal }) => getCheckoutSession(sessionId, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: sessionId !== null && sessionId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCheckoutSession>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetCheckoutSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getCheckoutSession>>>
-export type GetCheckoutSessionQueryError = ErrorType<ApiMessage>
-
-
-/**
- * @summary Read the status of a Stripe Checkout Session
- */
-
-export function useGetCheckoutSession<TData = Awaited<ReturnType<typeof getCheckoutSession>>, TError = ErrorType<ApiMessage>>(
- sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCheckoutSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getGetCheckoutSessionQueryOptions(sessionId,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -6,8 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface AuthMe {
-  authenticated: boolean;
-  /** @nullable */
-  userId: string | null;
+export interface ClaimResult {
+  /** Number of anonymous bills moved into the account */
+  migrated: number;
 }

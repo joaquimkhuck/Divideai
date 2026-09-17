@@ -15,7 +15,7 @@ Time: Estevão Antunes, Joaquim Huck, Artur Bresser.
 ## Comandos essenciais
 
 ```bash
-pnpm --filter @workspace/api-server run dev   # API na porta 5000
+pnpm --filter @workspace/api-server run dev   # API usa a variável PORT
 pnpm run typecheck                            # typecheck completo
 pnpm run build                                # typecheck + build
 pnpm --filter @workspace/api-spec run codegen # regenera hooks e Zod do OpenAPI

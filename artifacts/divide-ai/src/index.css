@@ -1,2 +1,2 @@
-@import "@clerk/ui/themes/shadcn.css";
+@layer theme, base, clerk, components, utilities;
 @import "@workspace/divide-ai-ds/styles.css";

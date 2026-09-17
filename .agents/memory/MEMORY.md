@@ -1,4 +1,5 @@
 - [Mockup sandbox Tailwind quirk](mockup-sandbox-tailwind.md) — arbitrary color classes like bg-[#C4472F] may not compile in DS mockup entries; use inline styles for one-off colors.
 - [Orval emits zod v4 API](orval-zod-v4.md) — lib/api-zod must pin zod ^4 or codegen typecheck fails with `zod.int` TS2339.
 - [Anthropic key & fee rule](anthropic-key-and-fee-rule.md) — AI Integrations blocked, uses user secret; service-fee formula mirrored client/server, change in lockstep.
+- [Clerk API testing](clerk-api-testing.md) — mint a session JWT via Clerk Backend API to curl signed-in routes; getAuth accepts bearer tokens.
 - [Prod schema via Publish](prod-schema-via-publish.md) — never write migration scripts or startup DDL; dev uses drizzle push, prod schema is diffed/applied by Replit's Publish flow.

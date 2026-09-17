@@ -1,11 +1,17 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import { clerkMiddleware } from "@clerk/express";
+import { publishableKeyFromHost } from "@clerk/shared/keys";
+import {
+  CLERK_PROXY_PATH,
+  clerkProxyMiddleware,
+  getClerkProxyHost,
+} from "./middlewares/clerkProxyMiddleware";
 import { ownerToken } from "./middlewares/owner";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { clerkMiddleware } from "@clerk/express";
 
 const app: Express = express();
 
@@ -28,11 +34,8 @@ app.use(
     },
   }),
 );
-// Clerk needs to inspect the Authorization header before body parsers run.
-// The app remains usable anonymously when the secret is not configured.
-if (process.env.CLERK_SECRET_KEY) {
-  app.use(clerkMiddleware());
-}
+// Clerk proxy must come before body parsers — it streams raw bytes.
+app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 // Non-credentialed CORS only: the owner cookie is the sole credential, so we
 // never set Access-Control-Allow-Credentials — browsers will refuse to expose
 // credentialed cross-origin responses, keeping the cookie same-origin-only.
@@ -40,6 +43,17 @@ app.use(cors());
 app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+// Resolve the publishable key from the incoming request host so the same
+// server can serve multiple Clerk custom domains. Falls back to
+// CLERK_PUBLISHABLE_KEY when the host doesn't map to a custom domain.
+app.use(
+  clerkMiddleware((req) => ({
+    publishableKey: publishableKeyFromHost(
+      getClerkProxyHost(req) ?? "",
+      process.env.CLERK_PUBLISHABLE_KEY,
+    ),
+  })),
+);
 app.use(ownerToken);
 
 app.use("/api", router);

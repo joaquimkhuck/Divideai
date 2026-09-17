@@ -14,10 +14,8 @@ tags:
     description: Divide Aí bills (rolês)
   - name: stats
     description: Aggregated stats
-  - name: auth
-    description: Optional account authentication
-  - name: payments
-    description: Stripe test-mode payments
+  - name: account
+    description: Signed-in account (profile, Pix key, credits)
 paths:
   /healthz:
     get:
@@ -155,6 +153,79 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiMessage"
+  /account:
+    get:
+      operationId: getAccount
+      tags: [account]
+      summary: Get the signed-in user's account (auto-creates on first call)
+      responses:
+        "200":
+          description: Account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+    patch:
+      operationId: updateAccount
+      tags: [account]
+      summary: Update account profile (Pix key)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountUpdate"
+      responses:
+        "200":
+          description: Updated account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /account/claim:
+    post:
+      operationId: claimBills
+      tags: [account]
+      summary: Migrate the anonymous session's bills to the signed-in account
+      responses:
+        "200":
+          description: Claim result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaimResult"
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /account/data:
+    delete:
+      operationId: deleteAccountData
+      tags: [account]
+      summary: Delete all bills and profile data of the signed-in user
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
   /stats:
     get:
       operationId: getStats
@@ -167,77 +238,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Stats"
-  /auth/me:
-    get:
-      operationId: getAuthMe
-      tags: [auth]
-      summary: Get the current authentication state
-      responses:
-        "200":
-          description: Current authentication state
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuthMe"
-  /payments/checkout-session:
-    post:
-      operationId: createCheckoutSession
-      tags: [payments]
-      summary: Create a Stripe Checkout Session for one person's share
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CheckoutSessionInput"
-      responses:
-        "201":
-          description: Hosted Stripe Checkout URL
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CheckoutSession"
-        "400":
-          description: Invalid payment request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiMessage"
-        "404":
-          description: Bill or person not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiMessage"
-        "503":
-          description: Stripe is not configured
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiMessage"
-  /payments/checkout-session/{sessionId}:
-    get:
-      operationId: getCheckoutSession
-      tags: [payments]
-      summary: Read the status of a Stripe Checkout Session
-      parameters:
-        - name: sessionId
-          in: path
-          required: true
-          schema: { type: string }
-      responses:
-        "200":
-          description: Checkout Session status
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CheckoutSessionStatus"
-        "404":
-          description: Session not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiMessage"
 components:
   schemas:
     HealthStatus:
@@ -252,33 +252,6 @@ components:
       required: [message]
       properties:
         message: { type: string }
-    AuthMe:
-      type: object
-      required: [authenticated, userId]
-      properties:
-        authenticated: { type: boolean }
-        userId: { type: [string, "null"] }
-    CheckoutSessionInput:
-      type: object
-      required: [billId, personId]
-      properties:
-        billId: { type: integer, minimum: 1 }
-        personId: { type: integer, minimum: 1 }
-    CheckoutSession:
-      type: object
-      required: [sessionId, url]
-      properties:
-        sessionId: { type: string }
-        url: { type: string, format: uri }
-    CheckoutSessionStatus:
-      type: object
-      required: [id, status, paymentStatus, amountTotal, currency]
-      properties:
-        id: { type: string }
-        status: { type: [string, "null"] }
-        paymentStatus: { type: [string, "null"] }
-        amountTotal: { type: [integer, "null"] }
-        currency: { type: [string, "null"] }
     BillPhoto:
       type: object
       required: [imageBase64]
@@ -394,6 +367,25 @@ components:
       required: [paid]
       properties:
         paid: { type: boolean }
+    Account:
+      type: object
+      required: [pixKey, creditBalance]
+      properties:
+        pixKey: { type: ["string", "null"] }
+        creditBalance:
+          type: integer
+          description: Bill-photo analyses left for this account
+    AccountUpdate:
+      type: object
+      properties:
+        pixKey: { type: ["string", "null"], maxLength: 140 }
+    ClaimResult:
+      type: object
+      required: [migrated]
+      properties:
+        migrated:
+          type: integer
+          description: Number of anonymous bills moved into the account
     Stats:
       type: object
       required: [billCount, totalSplitCents, pendingCents, pendingPeople]

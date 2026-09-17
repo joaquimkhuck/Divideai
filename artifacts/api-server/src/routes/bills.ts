@@ -1,13 +1,11 @@
-import { createHash } from "node:crypto";
 import { Router, type IRouter } from "express";
-import { inArray, desc, eq, and, sql } from "drizzle-orm";
+import { inArray, desc, eq, and } from "drizzle-orm";
 import {
   db,
   billsTable,
   billItemsTable,
   billPeopleTable,
   itemAssignmentsTable,
-  aiExtractionCacheTable,
   type BillRow,
 } from "@workspace/db";
 import {
@@ -23,6 +21,10 @@ import {
 import { analyzeBillImage, BillReadError } from "../lib/ai";
 import { computeSplit } from "../lib/split";
 import { rateLimit } from "../middlewares/rate-limit";
+import { billOwnerWhere, getUserId } from "../middlewares/auth";
+import { ensureAccount } from "./account";
+import { accountsTable } from "@workspace/db";
+import { sql, gt } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -116,6 +118,14 @@ async function loadBills(bills: BillRow[]) {
 const analyzeLimiter = rateLimit({ max: 10, windowMs: 60 * 60 * 1000 });
 
 router.post("/bills/analyze", analyzeLimiter, async (req, res) => {
+  // Credit model: signed-in accounts spend 1 credit per photo analysis.
+  // Anonymous sessions keep the IP rate limit only (no login before first split).
+  // Debit atomically BEFORE the paid AI call (conditional decrement), so
+  // concurrent requests cannot all pass a stale balance check; refunded below
+  // when the read fails.
+  const userId = getUserId(req);
+
+  // Validate the payload BEFORE debiting, so bad input never costs a credit.
   const { imageBase64 } = AnalyzeBillBody.parse(req.body);
   const raw = imageBase64.replace(/^data:image\/\w+;base64,/, "");
   if (
@@ -132,50 +142,39 @@ router.post("/bills/analyze", analyzeLimiter, async (req, res) => {
     res.status(422).json({ message: "Imagem grande demais ou inválida." });
     return;
   }
-  // Cache de extração: mesma imagem, mesmo resultado, sem pagar a chamada de novo.
-  // É best-effort de propósito — se o banco falhar, a rota segue e paga a chamada.
-  const hash = createHash("sha256").update(raw).digest("hex");
-  try {
-    const [cached] = await db
-      .select()
-      .from(aiExtractionCacheTable)
-      .where(eq(aiExtractionCacheTable.imageHash, hash))
-      .limit(1);
-    if (cached) {
-      await db
-        .update(aiExtractionCacheTable)
-        .set({ hits: sql`${aiExtractionCacheTable.hits} + 1` })
-        .where(eq(aiExtractionCacheTable.id, cached.id));
-      res.setHeader("X-Cache", "HIT");
-      res.json(AnalyzeBillResponse.parse(cached.result));
+
+  let debited = false;
+  if (userId) {
+    await ensureAccount(userId);
+    const rows = await db
+      .update(accountsTable)
+      .set({ creditBalance: sql`${accountsTable.creditBalance} - 1` })
+      .where(
+        and(eq(accountsTable.userId, userId), gt(accountsTable.creditBalance, 0)),
+      )
+      .returning({ id: accountsTable.userId });
+    if (rows.length === 0) {
+      res.status(402).json({
+        message: "Seus créditos acabaram. Compre mais para ler novas contas.",
+      });
       return;
     }
-  } catch {
-    // cache indisponível: segue para a IA
+    debited = true;
   }
-
+  const refund = async () => {
+    if (!userId || !debited) return;
+    debited = false;
+    await db
+      .update(accountsTable)
+      .set({ creditBalance: sql`${accountsTable.creditBalance} + 1` })
+      .where(eq(accountsTable.userId, userId));
+  };
   try {
     const draft = await analyzeBillImage(imageBase64);
-    // O schema gerado é um zod.object puro, então `usage` é descartado aqui:
-    // o corpo da resposta continua idêntico ao do contrato OpenAPI.
-    const out = AnalyzeBillResponse.parse(draft);
-    try {
-      await db
-        .insert(aiExtractionCacheTable)
-        .values({
-          imageHash: hash,
-          result: out,
-          model: draft.usage.model,
-          inputTokens: draft.usage.inputTokens,
-          outputTokens: draft.usage.outputTokens,
-        })
-        .onConflictDoNothing();
-    } catch {
-      // não gravou no cache: a resposta ao usuário não depende disso
-    }
-    res.setHeader("X-Cache", "MISS");
-    res.json(out);
+    res.json(AnalyzeBillResponse.parse(draft));
   } catch (err) {
+    // Failed reads don't cost a credit.
+    await refund();
     if (err instanceof BillReadError) {
       res.status(422).json({ message: "Não conseguimos ler essa foto." });
       return;
@@ -188,7 +187,7 @@ router.get("/bills", async (req, res) => {
   const bills = await db
     .select()
     .from(billsTable)
-    .where(eq(billsTable.ownerToken, req.ownerToken))
+    .where(billOwnerWhere(req))
     .orderBy(desc(billsTable.createdAt));
   res.json(ListBillsResponse.parse(await loadBills(bills)));
 });
@@ -227,6 +226,7 @@ router.post("/bills", async (req, res) => {
       .insert(billsTable)
       .values({
         ownerToken: req.ownerToken,
+        userId: getUserId(req),
         restaurantName: input.restaurantName ?? null,
         serviceFeePercent: input.serviceFeePercent,
         couvertCents: input.couvertCents,
@@ -279,7 +279,7 @@ router.get("/bills/:id", async (req, res) => {
   const [bill] = await db
     .select()
     .from(billsTable)
-    .where(and(eq(billsTable.id, id), eq(billsTable.ownerToken, req.ownerToken)));
+    .where(and(eq(billsTable.id, id), billOwnerWhere(req)));
   if (!bill) {
     res.status(404).json({ message: "Rolê não encontrado." });
     return;
@@ -296,7 +296,7 @@ router.delete("/bills/:id", async (req, res) => {
   }
   const deleted = await db
     .delete(billsTable)
-    .where(and(eq(billsTable.id, id), eq(billsTable.ownerToken, req.ownerToken)))
+    .where(and(eq(billsTable.id, id), billOwnerWhere(req)))
     .returning({ id: billsTable.id });
   if (deleted.length === 0) {
     res.status(404).json({ message: "Rolê não encontrado." });
@@ -317,7 +317,7 @@ router.patch("/bills/:id/people/:personId/paid", async (req, res) => {
   const [owned] = await db
     .select({ id: billsTable.id })
     .from(billsTable)
-    .where(and(eq(billsTable.id, id), eq(billsTable.ownerToken, req.ownerToken)));
+    .where(and(eq(billsTable.id, id), billOwnerWhere(req)));
   if (!owned) {
     res.status(404).json({ message: "Pessoa não encontrada." });
     return;

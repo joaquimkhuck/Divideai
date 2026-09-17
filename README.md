@@ -25,7 +25,7 @@ O app elimina a conta de cabeça: uma foto da conta vira uma lista de itens edit
 
 ### Princípios de produto
 
-- **Nunca paywall no fluxo core**: foto, itens e atribuição são sempre grátis.
+- **Créditos transparentes**: cada leitura de foto consome um crédito; revisão, divisão e cobrança não consomem créditos.
 - **Sem cadastro antes do primeiro resultado**: sessão anônima via cookie; quem abre o app chega ao valor por pessoa sem login.
 - **A soma sempre fecha**: os valores individuais batem com o total da conta, sem sobrar nem faltar centavo.
 
@@ -54,7 +54,7 @@ Contrato de API é codegen-first: edite `lib/api-spec/openapi.yaml`, rode o code
 ## Como rodar
 
 ```bash
-# API (porta 5000)
+# API (usa a variável PORT)
 pnpm --filter @workspace/api-server run dev
 
 # Typecheck de todos os pacotes
@@ -77,9 +77,9 @@ pnpm --filter @workspace/db run push
 | `DATABASE_URL` | Connection string do PostgreSQL | Sim |
 | `ANTHROPIC_API_KEY` | Chave da API Anthropic (leitura da foto da conta) | Sim |
 | `CLERK_SECRET_KEY` | Chave privada do Clerk para login opcional | Não |
+| `CLERK_PUBLISHABLE_KEY` | Chave pública do Clerk usada pela API | Não |
 | `VITE_CLERK_PUBLISHABLE_KEY` | Chave pública do Clerk para o app web | Não |
-| `STRIPE_SECRET_KEY` | Chave de teste do Stripe para Checkout | Não |
-| `PUBLIC_APP_URL` | URL pública usada no retorno do Checkout | Não |
+| `SESSION_SECRET` | Segredo usado pelas sessões do servidor | Sim |
 
 ## API
 
@@ -90,14 +90,14 @@ Endpoints definidos em `lib/api-spec/openapi.yaml`:
 | `GET /healthz` | Health check |
 | `POST /bills/analyze` | Recebe a foto da conta, extrai itens via Claude (valores em centavos, taxa de serviço, couvert, total detectado) |
 | `POST /bills` · `GET /bills` | Cria e lista contas da sessão |
-| `GET /auth/me` | Informa se a sessão atual está autenticada |
-| `POST /payments/checkout-session` | Abre o Checkout Stripe para a parte de uma pessoa |
-| `GET /payments/checkout-session/:sessionId` | Consulta o status do Checkout após o retorno |
-| `GET/PUT/DELETE /bills/{id}` | Lê, edita e apaga uma conta |
+| `GET/PATCH /account` | Consulta saldo e atualiza a chave Pix da conta autenticada |
+| `POST /account/claim` | Vincula rolês anônimos à conta autenticada |
+| `DELETE /account/data` | Apaga os dados da conta autenticada |
+| `GET/DELETE /bills/{id}` | Lê ou apaga uma conta |
 | `PATCH /bills/{id}/people/{personId}/paid` | Marca pessoa como paga |
 | `GET /stats` | Estatísticas |
 
-Toda conta pertence a um **owner token anônimo** (cookie httpOnly); leituras e escritas são escopadas a esse token. Se a imagem não for uma conta legível, a extração responde `{"error":"unreadable"}`.
+Toda conta pertence a um **owner token anônimo** (cookie httpOnly) ou a um usuário autenticado pelo Clerk. Leituras e escritas são filtradas pelo proprietário. Se a imagem não for uma conta legível, a extração responde `{"error":"unreadable"}`.
 
 Leitura da foto: SDK da Anthropic com prompt especializado em comandas brasileiras, respondendo JSON puro com valores monetários em centavos inteiros.
 
@@ -113,7 +113,8 @@ Leitura da foto: SDK da Anthropic com prompt especializado em comandas brasileir
 
 Schema Drizzle em `lib/db/src/schema/`:
 
-- `bills`: owner_token, restaurant_name, service_fee_percent, couvert_cents, total_cents
+- `accounts`: perfil Clerk, chave Pix e saldo de créditos
+- `bills`: owner_token, user_id, restaurant_name, service_fee_percent, couvert_cents, total_cents
 - `bill_items`: description, quantity, unit_price_cents
 - `bill_people`: name, amount_cents, paid, paid_at
 - `item_assignments`: item ↔ pessoa (N:N)
@@ -134,30 +135,6 @@ limpo: é ler comanda de restaurante brasileiro fotografada torta, com papel ama
 apagado e abreviação de garçom. Erro de centavo aqui quebra o invariante do motor de cálculo e
 o usuário perde a confiança na conta inteira. O custo por chamada continua abaixo de dois centavos
 de dólar, e a alavanca que importa nesta fase não é o preço do modelo, é o número de chamadas.
-
-### Não pagar a mesma leitura duas vezes
-
-`ai_extraction_cache` guarda o resultado de cada extração, chaveado pelo sha256 do base64 da
-imagem, junto com os tokens consumidos. Antes de chamar a API, a rota procura o hash: se acha,
-responde do banco em milissegundos, incrementa `hits` e não gasta nada. O header `X-Cache`
-devolve `HIT` ou `MISS` em cada resposta.
-
-Ressalva honesta: o cache é de bytes exatos. Reenviar a mesma foto do mesmo aparelho bate, porque
-o downscale do cliente é determinístico, e esse é o caso real de nova tentativa, de recarregar a
-tela e de demonstração. A mesma cena fotografada por dois celulares diferentes dá miss. Resolver
-isso exigiria hash perceptual, desproporcional nesta fase.
-
-Números medidos em uso (rodar a consulta abaixo e atualizar):
-
-```sql
-SELECT count(*) AS chamadas_pagas,
-       coalesce(sum(hits), 0) AS chamadas_evitadas,
-       round(avg(input_tokens)) AS tokens_entrada,
-       round(avg(output_tokens)) AS tokens_saida,
-       round((sum(hits * input_tokens) * 3.0
-            + sum(hits * output_tokens) * 15.0) / 1e6, 4) AS usd_economizados
-FROM ai_extraction_cache;
-```
 
 Preços conferidos na tabela oficial da Anthropic em 10/09/2026.
 

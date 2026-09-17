@@ -18,4 +18,4 @@
 //   export type Post = typeof postsTable.$inferSelect;
 
 export * from "./bills";
-export * from "./ai-cache";
+export * from "./accounts";

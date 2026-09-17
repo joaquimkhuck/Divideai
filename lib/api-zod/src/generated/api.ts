@@ -210,6 +210,46 @@ export const SetPersonPaidResponse = zod.object({
 
 
 /**
+ * @summary Get the signed-in user's account (auto-creates on first call)
+ */
+export const GetAccountResponse = zod.object({
+  "pixKey": zod.string().nullable(),
+  "creditBalance": zod.int().describe('Bill-photo analyses left for this account')
+})
+
+
+/**
+ * @summary Update account profile (Pix key)
+ */
+export const updateAccountBodyPixKeyMax = 140;
+
+
+
+export const UpdateAccountBody = zod.object({
+  "pixKey": zod.string().max(updateAccountBodyPixKeyMax).nullish()
+})
+
+export const UpdateAccountResponse = zod.object({
+  "pixKey": zod.string().nullable(),
+  "creditBalance": zod.int().describe('Bill-photo analyses left for this account')
+})
+
+
+/**
+ * @summary Migrate the anonymous session's bills to the signed-in account
+ */
+export const ClaimBillsResponse = zod.object({
+  "migrated": zod.int().describe('Number of anonymous bills moved into the account')
+})
+
+
+/**
+ * @summary Delete all bills and profile data of the signed-in user
+ */
+export const DeleteAccountDataResponse = zod.void()
+
+
+/**
  * @summary Aggregated stats for home and history
  */
 export const GetStatsResponse = zod.object({
@@ -223,49 +263,6 @@ export const GetStatsResponse = zod.object({
   "amountCents": zod.int(),
   "restaurantName": zod.string().nullish()
 })).describe('People who still owe, across bills')
-})
-
-
-/**
- * @summary Get the current authentication state
- */
-export const GetAuthMeResponse = zod.object({
-  "authenticated": zod.boolean(),
-  "userId": zod.string().nullable()
-})
-
-
-/**
- * @summary Create a Stripe Checkout Session for one person's share
- */
-
-
-
-
-export const CreateCheckoutSessionBody = zod.object({
-  "billId": zod.int().min(1),
-  "personId": zod.int().min(1)
-})
-
-export const CreateCheckoutSessionResponse = zod.object({
-  "sessionId": zod.string(),
-  "url": zod.url()
-})
-
-
-/**
- * @summary Read the status of a Stripe Checkout Session
- */
-export const GetCheckoutSessionParams = zod.object({
-  "sessionId": zod.coerce.string()
-})
-
-export const GetCheckoutSessionResponse = zod.object({
-  "id": zod.string(),
-  "status": zod.string().nullable(),
-  "paymentStatus": zod.string().nullable(),
-  "amountTotal": zod.int().nullable(),
-  "currency": zod.string().nullable()
 })
 
 

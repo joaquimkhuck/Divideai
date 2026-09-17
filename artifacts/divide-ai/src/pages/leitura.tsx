@@ -84,6 +84,11 @@ export default function Leitura() {
           window.setTimeout(() => setLocation("/revisar"), 900);
         },
         onError: (err: Error) => {
+          // 402: conta sem créditos — leva direto para a tela de créditos.
+          if (err instanceof ApiError && err.status === 402) {
+            setLocation("/creditos", { replace: true });
+            return;
+          }
           const rateLimited = err instanceof ApiError && err.status === 429;
           setLocation("/erro-leitura", {
             state: { rateLimited },

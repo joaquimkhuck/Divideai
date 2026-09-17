@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import type { Request, Response, NextFunction } from "express";
-import { getAuth } from "@clerk/express";
 
 const COOKIE_NAME = "divideai_owner";
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
@@ -22,15 +21,6 @@ declare global {
  * are scoped to this token.
  */
 export function ownerToken(req: Request, res: Response, next: NextFunction) {
-  if (process.env.CLERK_SECRET_KEY) {
-    const { userId } = getAuth(req);
-    if (userId) {
-      req.ownerToken = `clerk:${userId}`;
-      next();
-      return;
-    }
-  }
-
   let token: string | undefined = req.cookies?.[COOKIE_NAME];
   if (!token || !TOKEN_RE.test(token)) {
     token = randomUUID();
