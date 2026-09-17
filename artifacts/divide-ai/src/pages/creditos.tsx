@@ -5,15 +5,16 @@ import { useAuth } from "@clerk/react";
 import { Button } from "@workspace/divide-ai-ds/components/ui/button";
 import { Card } from "@workspace/divide-ai-ds/components/ui/card";
 import { cn } from "@workspace/divide-ai-ds/lib/utils";
-import { useGetAccount, getGetAccountQueryKey } from "@workspace/api-client-react";
+import {
+  useGetAccount,
+  getGetAccountQueryKey,
+  useGetCreditPackages,
+  getGetCreditPackagesQueryKey,
+  useCreateCreditsCheckoutSession,
+} from "@workspace/api-client-react";
 import { PhoneShell } from "@/components/phone-shell";
 import { useToast } from "@/hooks/use-toast";
-
-const PACOTES = [
-  { contas: 5, preco: "R$ 5,00", porConta: "R$ 1,00 por conta" },
-  { contas: 15, preco: "R$ 13,50", porConta: "R$ 0,90 por conta" },
-  { contas: 40, preco: "R$ 32,00", porConta: "R$ 0,80 por conta" },
-];
+import { formatCents } from "@/lib/money";
 
 export default function Creditos() {
   const [, setLocation] = useLocation();
@@ -33,7 +34,36 @@ export default function Creditos() {
     },
   });
 
+  const { data: packagesData } = useGetCreditPackages({
+    query: {
+      queryKey: getGetCreditPackagesQueryKey(),
+      enabled: Boolean(isLoaded && isSignedIn),
+    },
+  });
+
+  const checkout = useCreateCreditsCheckoutSession();
+
+  const pacotes = packagesData?.packages ?? [];
+  const escolhidoIndex = Math.min(escolhido, Math.max(pacotes.length - 1, 0));
+  const pacoteEscolhido = pacotes[escolhidoIndex];
+
   const saldo = account?.creditBalance ?? 0;
+
+  const comprar = () => {
+    if (!pacoteEscolhido) return;
+    checkout.mutate(
+      { data: { packageId: pacoteEscolhido.id } },
+      {
+        onSuccess: ({ url }) => window.location.assign(url),
+        onError: () =>
+          toast({
+            title: "Não consegui abrir o pagamento",
+            description: "Confira se o Stripe está configurado em modo teste.",
+            variant: "destructive",
+          }),
+      },
+    );
+  };
 
   return (
     <PhoneShell>
@@ -75,29 +105,29 @@ export default function Creditos() {
 
         {/* Pacotes */}
         <div className="space-y-3">
-          {PACOTES.map((p, i) => {
-            const ativo = i === escolhido;
+          {pacotes.map((p, i) => {
+            const ativo = i === escolhidoIndex;
             return (
               <button
-                key={p.contas}
+                key={p.id}
                 type="button"
                 onClick={() => setEscolhido(i)}
                 aria-pressed={ativo}
-                data-testid={`button-pacote-${p.contas}`}
+                data-testid={`button-pacote-${p.credits}`}
                 className={cn(
                   "flex w-full items-center justify-between rounded-3xl bg-card p-4 text-left shadow-[0_2px_8px_rgba(31,35,40,0.06)] transition-colors",
                   ativo ? "border-2 border-primary" : "border border-border"
                 )}
               >
                 <div>
-                  <p className="text-[17px] font-bold">{p.contas} contas</p>
+                  <p className="text-[17px] font-bold">{p.credits} contas</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    {p.porConta}
+                    {formatCents(Math.round(p.amountCents / p.credits))} por conta
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <p className="text-xl font-extrabold tabular-nums">
-                    {p.preco}
+                    {formatCents(p.amountCents)}
                   </p>
                   <span
                     className={cn(
@@ -125,15 +155,14 @@ export default function Creditos() {
         <Button
           size="lg"
           data-testid="button-comprar"
-          onClick={() =>
-            toast({
-              title: "Pagamentos chegam em breve",
-              description:
-                "A compra de créditos ainda não está disponível. Seus créditos gratuitos continuam valendo.",
-            })
-          }
+          disabled={!pacoteEscolhido || checkout.isPending}
+          onClick={comprar}
         >
-          Comprar {PACOTES[escolhido].contas} contas · {PACOTES[escolhido].preco}
+          {checkout.isPending
+            ? "Abrindo pagamento..."
+            : pacoteEscolhido
+              ? `Comprar ${pacoteEscolhido.credits} contas · ${formatCents(pacoteEscolhido.amountCents)}`
+              : "Comprar"}
         </Button>
       </footer>
     </PhoneShell>

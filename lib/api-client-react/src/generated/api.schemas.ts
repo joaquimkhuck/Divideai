@@ -157,7 +157,6 @@ export interface CheckoutSession {
 }
 
 export interface CheckoutSessionStatus {
-  id: string;
   /** @nullable */
   status: string | null;
   /** @nullable */
@@ -165,6 +164,33 @@ export interface CheckoutSessionStatus {
   /** @nullable */
   amountTotal: number | null;
   /** @nullable */
-  currency: string | null;
+  personName: string | null;
+  /** @nullable */
+  restaurantName: string | null;
+}
+
+export interface CreditPackage {
+  id: string;
+  credits: number;
+  amountCents: number;
+}
+
+export interface CreditPackagesResponse {
+  packages: CreditPackage[];
+}
+
+export interface CreditsCheckoutBody {
+  packageId: string;
+}
+
+export interface CreditsCheckoutSessionStatus {
+  /** @nullable */
+  status: string | null;
+  /** @nullable */
+  paymentStatus: string | null;
+  /** Credits granted by this purchase */
+  credits: number;
+  /** Account's current credit balance */
+  creditBalance: number;
 }
 

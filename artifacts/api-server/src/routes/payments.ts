@@ -1,4 +1,4 @@
-import { Router, type IRouter, type Request } from "express";
+import { Router, type IRouter } from "express";
 import { and, eq } from "drizzle-orm";
 import Stripe from "stripe";
 import { db, billsTable, billPeopleTable } from "@workspace/db";
@@ -8,24 +8,9 @@ import {
   GetPaymentsConfigResponse,
 } from "@workspace/api-zod";
 import { billOwnerWhere } from "../middlewares/auth";
+import { getStripe, appUrl } from "../lib/stripe";
 
 const router: IRouter = Router();
-
-function getStripe(): Stripe | null {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  return secretKey ? new Stripe(secretKey) : null;
-}
-
-function appUrl(req: Request): string | null {
-  const configured = process.env.PUBLIC_APP_URL?.replace(/\/$/, "");
-  if (configured) return configured;
-
-  const forwardedProto = req.get("x-forwarded-proto")?.split(",")[0]?.trim();
-  const forwardedHost = req.get("x-forwarded-host")?.split(",")[0]?.trim();
-  const protocol = forwardedProto || req.protocol;
-  const host = forwardedHost || req.get("host");
-  return host ? `${protocol}://${host}` : null;
-}
 
 function parseId(raw: string): number | null {
   const n = Number(raw);
@@ -134,7 +119,18 @@ router.get("/payments/checkout-session/:sessionId", async (req, res) => {
     return;
   }
 
-  const session = await stripe.checkout.sessions.retrieve(sessionId);
+  let session: Stripe.Checkout.Session;
+  try {
+    session = await stripe.checkout.sessions.retrieve(sessionId);
+  } catch (err) {
+    if (err instanceof Stripe.errors.StripeInvalidRequestError) {
+      res.status(404).json({ message: "Pagamento não encontrado." });
+      return;
+    }
+    res.status(502).json({ message: "Não consegui falar com o Stripe." });
+    return;
+  }
+
   const billId = Number(session.metadata?.billId);
   const personId = Number(session.metadata?.personId);
   if (!billId || !personId) {
@@ -142,11 +138,20 @@ router.get("/payments/checkout-session/:sessionId", async (req, res) => {
     return;
   }
 
-  const [owned] = await db
-    .select({ id: billsTable.id })
-    .from(billsTable)
-    .where(and(eq(billsTable.id, billId), billOwnerWhere(req)));
-  if (!owned) {
+  // Authorization here is the Stripe session id itself (unguessable), not the
+  // anonymous owner cookie: the payer is very often a friend the bill owner
+  // sent the link to, so they never have the owner's cookie.
+  const [person] = await db
+    .select({
+      id: billPeopleTable.id,
+      name: billPeopleTable.name,
+      restaurantName: billsTable.restaurantName,
+    })
+    .from(billPeopleTable)
+    .innerJoin(billsTable, eq(billsTable.id, billPeopleTable.billId))
+    .where(and(eq(billPeopleTable.id, personId), eq(billPeopleTable.billId, billId)))
+    .limit(1);
+  if (!person) {
     res.status(404).json({ message: "Pagamento não encontrado." });
     return;
   }
@@ -162,11 +167,11 @@ router.get("/payments/checkout-session/:sessionId", async (req, res) => {
 
   res.json(
     GetCheckoutSessionResponse.parse({
-      id: session.id,
       status: session.status,
       paymentStatus: session.payment_status,
       amountTotal: session.amount_total,
-      currency: session.currency,
+      personName: person.name,
+      restaurantName: person.restaurantName,
     }),
   );
 });

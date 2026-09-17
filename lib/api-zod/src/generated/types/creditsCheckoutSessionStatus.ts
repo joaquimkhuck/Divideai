@@ -6,15 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CheckoutSessionStatus {
+export interface CreditsCheckoutSessionStatus {
   /** @nullable */
   status: string | null;
   /** @nullable */
   paymentStatus: string | null;
-  /** @nullable */
-  amountTotal: number | null;
-  /** @nullable */
-  personName: string | null;
-  /** @nullable */
-  restaurantName: string | null;
+  /** Credits granted by this purchase */
+  credits: number;
+  /** Account's current credit balance */
+  creditBalance: number;
 }

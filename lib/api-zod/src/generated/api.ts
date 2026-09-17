@@ -281,6 +281,46 @@ export const GetStatsResponse = zod.object({
 
 
 /**
+ * @summary Credit packages available for purchase (server is the source of truth)
+ */
+export const GetCreditPackagesResponse = zod.object({
+  "packages": zod.array(zod.object({
+  "id": zod.string(),
+  "credits": zod.int(),
+  "amountCents": zod.int()
+}))
+})
+
+
+/**
+ * @summary Create a Stripe Checkout Session to buy a credit package
+ */
+export const CreateCreditsCheckoutSessionBody = zod.object({
+  "packageId": zod.string()
+})
+
+export const CreateCreditsCheckoutSessionResponse = zod.object({
+  "sessionId": zod.string(),
+  "url": zod.url()
+})
+
+
+/**
+ * @summary Read a credits Checkout Session status, crediting the account once when paid
+ */
+export const GetCreditsCheckoutSessionParams = zod.object({
+  "sessionId": zod.coerce.string()
+})
+
+export const GetCreditsCheckoutSessionResponse = zod.object({
+  "status": zod.string().nullable(),
+  "paymentStatus": zod.string().nullable(),
+  "credits": zod.int().describe('Credits granted by this purchase'),
+  "creditBalance": zod.int().describe('Account\'s current credit balance')
+})
+
+
+/**
  * @summary Whether Stripe test-mode checkout is available
  */
 export const GetPaymentsConfigResponse = zod.object({
@@ -296,11 +336,11 @@ export const GetCheckoutSessionParams = zod.object({
 })
 
 export const GetCheckoutSessionResponse = zod.object({
-  "id": zod.string(),
   "status": zod.string().nullable(),
   "paymentStatus": zod.string().nullable(),
   "amountTotal": zod.int().nullable(),
-  "currency": zod.string().nullable()
+  "personName": zod.string().nullable(),
+  "restaurantName": zod.string().nullable()
 })
 
 

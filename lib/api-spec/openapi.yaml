@@ -285,6 +285,89 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Stats"
+  /credits/packages:
+    get:
+      operationId: getCreditPackages
+      tags: [payments]
+      summary: Credit packages available for purchase (server is the source of truth)
+      responses:
+        "200":
+          description: Credit packages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditPackagesResponse"
+  /credits/checkout:
+    post:
+      operationId: createCreditsCheckoutSession
+      tags: [payments]
+      summary: Create a Stripe Checkout Session to buy a credit package
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreditsCheckoutBody"
+      responses:
+        "201":
+          description: Hosted Stripe Checkout URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSession"
+        "400":
+          description: Invalid package
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+        "503":
+          description: Stripe is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+  /credits/checkout-session/{sessionId}:
+    get:
+      operationId: getCreditsCheckoutSession
+      tags: [payments]
+      summary: Read a credits Checkout Session status, crediting the account once when paid
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Checkout Session status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditsCheckoutSessionStatus"
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+        "404":
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+        "502":
+          description: Stripe request failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
   /payments/config:
     get:
       operationId: getPaymentsConfig
@@ -322,6 +405,12 @@ paths:
                 $ref: "#/components/schemas/ApiMessage"
         "503":
           description: Stripe is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+        "502":
+          description: Stripe request failed
           content:
             application/json:
               schema:
@@ -512,10 +601,43 @@ components:
         url: { type: string, format: uri }
     CheckoutSessionStatus:
       type: object
-      required: [id, status, paymentStatus, amountTotal, currency]
+      required: [status, paymentStatus, amountTotal, personName, restaurantName]
       properties:
-        id: { type: string }
         status: { type: ["string", "null"] }
         paymentStatus: { type: ["string", "null"] }
         amountTotal: { type: ["integer", "null"] }
-        currency: { type: ["string", "null"] }
+        personName: { type: ["string", "null"] }
+        restaurantName: { type: ["string", "null"] }
+    CreditPackage:
+      type: object
+      required: [id, credits, amountCents]
+      properties:
+        id: { type: string }
+        credits: { type: integer }
+        amountCents: { type: integer }
+    CreditPackagesResponse:
+      type: object
+      required: [packages]
+      properties:
+        packages:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreditPackage"
+    CreditsCheckoutBody:
+      type: object
+      required: [packageId]
+      properties:
+        packageId: { type: string }
+    CreditsCheckoutSessionStatus:
+      type: object
+      required: [status, paymentStatus, credits, creditBalance]
+      properties:
+        status: { type: ["string", "null"] }
+        paymentStatus: { type: ["string", "null"] }
+        credits:
+          type: integer
+          description: Credits granted by this purchase
+        creditBalance:
+          type: integer
+          description: Account's current credit balance
+
