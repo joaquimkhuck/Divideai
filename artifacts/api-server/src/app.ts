@@ -5,6 +5,7 @@ import { ownerToken } from "./middlewares/owner";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { clerkMiddleware } from "@clerk/express";
 
 const app: Express = express();
 
@@ -27,6 +28,11 @@ app.use(
     },
   }),
 );
+// Clerk needs to inspect the Authorization header before body parsers run.
+// The app remains usable anonymously when the secret is not configured.
+if (process.env.CLERK_SECRET_KEY) {
+  app.use(clerkMiddleware());
+}
 // Non-credentialed CORS only: the owner cookie is the sole credential, so we
 // never set Access-Control-Allow-Credentials — browsers will refuse to expose
 // credentialed cross-origin responses, keeping the cookie same-origin-only.

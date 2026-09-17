@@ -13,6 +13,36 @@ export interface ApiMessage {
   message: string;
 }
 
+export interface AuthMe {
+  authenticated: boolean;
+  /** @nullable */
+  userId: string | null;
+}
+
+export interface CheckoutSessionInput {
+  /** @minimum 1 */
+  billId: number;
+  /** @minimum 1 */
+  personId: number;
+}
+
+export interface CheckoutSession {
+  sessionId: string;
+  url: string;
+}
+
+export interface CheckoutSessionStatus {
+  id: string;
+  /** @nullable */
+  status: string | null;
+  /** @nullable */
+  paymentStatus: string | null;
+  /** @nullable */
+  amountTotal: number | null;
+  /** @nullable */
+  currency: string | null;
+}
+
 export interface BillPhoto {
   /** Bill photo as base64 (data URL prefix allowed) */
   imageBase64: string;

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Receipt, ChevronLeft, Trash2, Copy } from "lucide-react";
+import { Check, Receipt, ChevronLeft, Trash2, Copy, CreditCard } from "lucide-react";
 import { Button } from "@workspace/divide-ai-ds/components/ui/button";
 import { Card } from "@workspace/divide-ai-ds/components/ui/card";
 import { Badge } from "@workspace/divide-ai-ds/components/ui/badge";
@@ -20,6 +20,7 @@ import {
   useDeleteBill,
   getListBillsQueryKey,
   getGetStatsQueryKey,
+  useCreateCheckoutSession,
 } from "@workspace/api-client-react";
 import type { Bill, BillPerson } from "@workspace/api-client-react";
 import {
@@ -58,6 +59,7 @@ export default function Role() {
 
   const setPaid = useSetPersonPaid();
   const deleteBill = useDeleteBill();
+  const checkout = useCreateCheckoutSession();
 
   const peopleSum = useMemo(
     () => (bill?.people ?? []).reduce((s, p) => s + p.amountCents, 0),
@@ -92,6 +94,21 @@ export default function Role() {
       person.amountCents
     )}. Pode mandar no Pix: ${PIX_KEY} 🙏`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  const pagarComStripe = (person: BillPerson) => {
+    checkout.mutate(
+      { data: { billId, personId: person.id } },
+      {
+        onSuccess: ({ url }) => window.location.assign(url),
+        onError: () =>
+          toast({
+            title: "Não consegui abrir o pagamento",
+            description: "Confira se o Stripe está configurado em modo teste.",
+            variant: "destructive",
+          }),
+      },
+    );
   };
 
   const removerRole = () => {
@@ -328,6 +345,16 @@ export default function Role() {
                   onClick={() => cobrarWhatsapp(selected)}
                 >
                   Cobrar no WhatsApp
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  data-testid="button-stripe-checkout"
+                  disabled={checkout.isPending}
+                  onClick={() => pagarComStripe(selected)}
+                >
+                  <CreditCard className="h-4 w-4" />
+                  {checkout.isPending ? "Abrindo pagamento..." : "Pagar com Stripe (teste)"}
                 </Button>
                 {selected.paid ? (
                   <Button

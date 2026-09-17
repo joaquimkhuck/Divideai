@@ -76,6 +76,10 @@ pnpm --filter @workspace/db run push
 |---|---|---|
 | `DATABASE_URL` | Connection string do PostgreSQL | Sim |
 | `ANTHROPIC_API_KEY` | Chave da API Anthropic (leitura da foto da conta) | Sim |
+| `CLERK_SECRET_KEY` | Chave privada do Clerk para login opcional | Não |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Chave pública do Clerk para o app web | Não |
+| `STRIPE_SECRET_KEY` | Chave de teste do Stripe para Checkout | Não |
+| `PUBLIC_APP_URL` | URL pública usada no retorno do Checkout | Não |
 
 ## API
 
@@ -86,6 +90,9 @@ Endpoints definidos em `lib/api-spec/openapi.yaml`:
 | `GET /healthz` | Health check |
 | `POST /bills/analyze` | Recebe a foto da conta, extrai itens via Claude (valores em centavos, taxa de serviço, couvert, total detectado) |
 | `POST /bills` · `GET /bills` | Cria e lista contas da sessão |
+| `GET /auth/me` | Informa se a sessão atual está autenticada |
+| `POST /payments/checkout-session` | Abre o Checkout Stripe para a parte de uma pessoa |
+| `GET /payments/checkout-session/:sessionId` | Consulta o status do Checkout após o retorno |
 | `GET/PUT/DELETE /bills/{id}` | Lê, edita e apaga uma conta |
 | `PATCH /bills/{id}/people/{personId}/paid` | Marca pessoa como paga |
 | `GET /stats` | Estatísticas |

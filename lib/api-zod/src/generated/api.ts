@@ -226,3 +226,46 @@ export const GetStatsResponse = zod.object({
 })
 
 
+/**
+ * @summary Get the current authentication state
+ */
+export const GetAuthMeResponse = zod.object({
+  "authenticated": zod.boolean(),
+  "userId": zod.string().nullable()
+})
+
+
+/**
+ * @summary Create a Stripe Checkout Session for one person's share
+ */
+
+
+
+
+export const CreateCheckoutSessionBody = zod.object({
+  "billId": zod.int().min(1),
+  "personId": zod.int().min(1)
+})
+
+export const CreateCheckoutSessionResponse = zod.object({
+  "sessionId": zod.string(),
+  "url": zod.url()
+})
+
+
+/**
+ * @summary Read the status of a Stripe Checkout Session
+ */
+export const GetCheckoutSessionParams = zod.object({
+  "sessionId": zod.coerce.string()
+})
+
+export const GetCheckoutSessionResponse = zod.object({
+  "id": zod.string(),
+  "status": zod.string().nullable(),
+  "paymentStatus": zod.string().nullable(),
+  "amountTotal": zod.int().nullable(),
+  "currency": zod.string().nullable()
+})
+
+

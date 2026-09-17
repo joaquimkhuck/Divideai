@@ -9,8 +9,10 @@ import { fileToDownscaledBase64 } from "@/lib/image";
 import { formatCents } from "@/lib/money";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@workspace/divide-ai-ds/lib/utils";
+import { AccountButton } from "@/components/account-button";
 
 const MAX_SIDE = 1600;
+const clerkEnabled = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -109,21 +111,24 @@ export default function Home() {
         <p className="text-[26px] font-bold leading-none" data-testid="text-brand">
           Divide Aí
         </p>
-        {pendingCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setLocation("/roles")}
-            data-testid="button-pending-hint"
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5"
-          >
-            <span className="text-xs uppercase tracking-[0.06em] text-muted-foreground">
-              Pendente
-            </span>
-            <span className="text-sm font-extrabold tabular-nums">
-              {formatCents(pendingCents)}
-            </span>
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {pendingCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setLocation("/roles")}
+              data-testid="button-pending-hint"
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5"
+            >
+              <span className="text-xs uppercase tracking-[0.06em] text-muted-foreground">
+                Pendente
+              </span>
+              <span className="text-sm font-extrabold tabular-nums">
+                {formatCents(pendingCents)}
+              </span>
+            </button>
+          )}
+          <AccountButton enabled={clerkEnabled} />
+        </div>
       </header>
 
       {/* Center: live viewfinder */}
