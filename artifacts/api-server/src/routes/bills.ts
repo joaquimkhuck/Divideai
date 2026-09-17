@@ -21,7 +21,7 @@ import {
 import { analyzeBillImage, BillReadError } from "../lib/ai";
 import { computeSplit } from "../lib/split";
 import { rateLimit } from "../middlewares/rate-limit";
-import { billOwnerWhere, getUserId } from "../middlewares/auth";
+import { billOwnerWhere, getUserId, requireAuth } from "../middlewares/auth";
 import { ensureAccount } from "./account";
 import { accountsTable } from "@workspace/db";
 import { sql, gt } from "drizzle-orm";
@@ -117,9 +117,9 @@ async function loadBills(bills: BillRow[]) {
 // IP-keyed limit so minting new owner cookies cannot bypass it.
 const analyzeLimiter = rateLimit({ max: 10, windowMs: 60 * 60 * 1000 });
 
-router.post("/bills/analyze", analyzeLimiter, async (req, res) => {
+router.post("/bills/analyze", requireAuth, analyzeLimiter, async (req, res) => {
   // Credit model: signed-in accounts spend 1 credit per photo analysis.
-  // Anonymous sessions keep the IP rate limit only (no login before first split).
+  // requireAuth above guarantees userId here; still IP rate-limited too.
   // Debit atomically BEFORE the paid AI call (conditional decrement), so
   // concurrent requests cannot all pass a stale balance check; refunded below
   // when the read fails.
@@ -179,7 +179,8 @@ router.post("/bills/analyze", analyzeLimiter, async (req, res) => {
       res.status(422).json({ message: "Não conseguimos ler essa foto." });
       return;
     }
-    throw err;
+    req.log.error({ err }, "Bill analysis failed");
+    res.status(500).json({ message: "Não conseguimos processar essa foto agora." });
   }
 });
 

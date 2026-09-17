@@ -13,6 +13,7 @@ export function SignInPage() {
           routing="path"
           path={`${basePath}/sign-in`}
           signUpUrl={`${basePath}/sign-up`}
+          forceRedirectUrl={basePath || "/"}
         />
       </main>
     </PhoneShell>
@@ -27,6 +28,7 @@ export function SignUpPage() {
           routing="path"
           path={`${basePath}/sign-up`}
           signInUrl={`${basePath}/sign-in`}
+          forceRedirectUrl={basePath || "/"}
         />
       </main>
     </PhoneShell>

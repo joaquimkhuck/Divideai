@@ -27,12 +27,17 @@ export default function Home() {
   });
 
   const { isLoaded, isSignedIn } = useAuth();
+  const signedOut = isLoaded && !isSignedIn;
   const pendingCount = stats?.pendingPeople?.length ?? 0;
   const pendingCents = stats?.pendingCents ?? 0;
 
+  const goToSignIn = () => setLocation("/sign-in");
+
   // Live viewfinder (iScanner style). Falls back to the file input when
-  // the camera is unavailable or permission is denied.
+  // the camera is unavailable or permission is denied. Only signed-in
+  // users get a camera stream — signed-out users see a static CTA instead.
   useEffect(() => {
+    if (!isSignedIn) return;
     let cancelled = false;
     async function start() {
       if (!navigator.mediaDevices?.getUserMedia) return;
@@ -61,7 +66,7 @@ export default function Home() {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };
-  }, []);
+  }, [isSignedIn]);
 
   const goToLeitura = (base64: string) => {
     resetDraft();
@@ -70,6 +75,10 @@ export default function Home() {
   };
 
   const handleFile = async (file: File) => {
+    if (!isSignedIn) {
+      goToSignIn();
+      return;
+    }
     try {
       const base64 = await fileToDownscaledBase64(file);
       goToLeitura(base64);
@@ -83,6 +92,10 @@ export default function Home() {
   };
 
   const captureFrame = () => {
+    if (!isSignedIn) {
+      goToSignIn();
+      return;
+    }
     const video = videoRef.current;
     if (!cameraReady || !video || video.videoWidth === 0) {
       inputRef.current?.click();
@@ -162,22 +175,39 @@ export default function Home() {
           style={{ aspectRatio: "3 / 4" }}
           data-testid="camera-viewfinder"
         >
-          <video
-            ref={videoRef}
-            playsInline
-            muted
-            autoPlay
-            className={cn(
-              "h-full w-full object-cover transition-opacity duration-300",
-              cameraReady ? "opacity-100" : "opacity-0",
-            )}
-          />
-          {!cameraReady && (
+          {isSignedIn && (
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              autoPlay
+              className={cn(
+                "h-full w-full object-cover transition-opacity duration-300",
+                cameraReady ? "opacity-100" : "opacity-0",
+              )}
+            />
+          )}
+          {(!isSignedIn || !cameraReady) && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
               <Camera className="size-8 text-background/70" />
-              <p className="px-8 text-sm text-background/70">
-                Aponte para a conta ou escolha uma foto
-              </p>
+              {signedOut ? (
+                <>
+                  <p className="px-8 text-sm text-background/70">
+                    Entre para fotografar a conta
+                  </p>
+                  <Button
+                    size="sm"
+                    data-testid="button-entrar-escanear"
+                    onClick={goToSignIn}
+                  >
+                    Entrar para escanear
+                  </Button>
+                </>
+              ) : (
+                <p className="px-8 text-sm text-background/70">
+                  Aponte para a conta ou escolha uma foto
+                </p>
+              )}
             </div>
           )}
           {/* Corner guides, iScanner style */}
@@ -218,7 +248,7 @@ export default function Home() {
             size="icon"
             aria-label="Escolher da galeria"
             data-testid="button-gallery"
-            onClick={() => inputRef.current?.click()}
+            onClick={() => (isSignedIn ? inputRef.current?.click() : goToSignIn())}
             className="absolute right-4 size-12 rounded-full text-muted-foreground"
           >
             <Images className="size-5" />
