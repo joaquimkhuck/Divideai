@@ -210,6 +210,20 @@ export const SetPersonPaidResponse = zod.object({
 
 
 /**
+ * @summary Create a Stripe Checkout Session for one person's share
+ */
+export const CreateCheckoutSessionParams = zod.object({
+  "id": zod.coerce.number().int(),
+  "personId": zod.coerce.number().int()
+})
+
+export const CreateCheckoutSessionResponse = zod.object({
+  "sessionId": zod.string(),
+  "url": zod.url()
+})
+
+
+/**
  * @summary Get the signed-in user's account (auto-creates on first call)
  */
 export const GetAccountResponse = zod.object({
@@ -263,6 +277,30 @@ export const GetStatsResponse = zod.object({
   "amountCents": zod.int(),
   "restaurantName": zod.string().nullish()
 })).describe('People who still owe, across bills')
+})
+
+
+/**
+ * @summary Whether Stripe test-mode checkout is available
+ */
+export const GetPaymentsConfigResponse = zod.object({
+  "enabled": zod.boolean().describe('True when STRIPE_SECRET_KEY is configured on the server')
+})
+
+
+/**
+ * @summary Read the status of a Stripe Checkout Session
+ */
+export const GetCheckoutSessionParams = zod.object({
+  "sessionId": zod.coerce.string()
+})
+
+export const GetCheckoutSessionResponse = zod.object({
+  "id": zod.string(),
+  "status": zod.string().nullable(),
+  "paymentStatus": zod.string().nullable(),
+  "amountTotal": zod.int().nullable(),
+  "currency": zod.string().nullable()
 })
 
 

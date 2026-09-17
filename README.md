@@ -80,6 +80,8 @@ pnpm --filter @workspace/db run push
 | `CLERK_PUBLISHABLE_KEY` | Chave pública do Clerk usada pela API | Não |
 | `VITE_CLERK_PUBLISHABLE_KEY` | Chave pública do Clerk para o app web | Não |
 | `SESSION_SECRET` | Segredo usado pelas sessões do servidor | Sim |
+| `STRIPE_SECRET_KEY` | Chave de teste do Stripe para pagar a parte via Checkout | Não |
+| `PUBLIC_APP_URL` | URL pública usada no retorno do Checkout | Não |
 
 ## API
 
@@ -94,7 +96,10 @@ Endpoints definidos em `lib/api-spec/openapi.yaml`:
 | `POST /account/claim` | Vincula rolês anônimos à conta autenticada |
 | `DELETE /account/data` | Apaga os dados da conta autenticada |
 | `GET/DELETE /bills/{id}` | Lê ou apaga uma conta |
-| `PATCH /bills/{id}/people/{personId}/paid` | Marca pessoa como paga |
+| `PATCH /bills/{id}/people/{personId}/paid` | Marca pessoa como paga (toggle manual) |
+| `POST /bills/{id}/people/{personId}/checkout` | Abre um Checkout Stripe (teste) para a parte da pessoa; 503 se `STRIPE_SECRET_KEY` não estiver configurado |
+| `GET /payments/checkout-session/{sessionId}` | Consulta o status do Checkout após o retorno e marca a pessoa como paga quando `paid` |
+| `GET /payments/config` | Informa se o pagamento via Stripe está disponível (usado para mostrar/esconder o botão) |
 | `GET /stats` | Estatísticas |
 
 Toda conta pertence a um **owner token anônimo** (cookie httpOnly) ou a um usuário autenticado pelo Clerk. Leituras e escritas são filtradas pelo proprietário. Se a imagem não for uma conta legível, a extração responde `{"error":"unreadable"}`.

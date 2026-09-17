@@ -20,6 +20,7 @@ import Historico from '@/pages/historico';
 import Entrar from '@/pages/entrar';
 import Creditos from '@/pages/creditos';
 import Perfil from '@/pages/perfil';
+import PagamentoSucesso from '@/pages/pagamento-sucesso';
 import { SignInPage, SignUpPage } from '@/pages/auth';
 import {
   Route,
@@ -136,6 +137,7 @@ function Router() {
         <Route path="/entrar" component={Entrar} />
         <Route path="/creditos" component={Creditos} />
         <Route path="/perfil" component={Perfil} />
+        <Route path="/pagamento/sucesso" component={PagamentoSucesso} />
         {/* REQUIRED — the /*? optional wildcard matches the bare URL and Clerk's
             OAuth sub-paths (/sign-in/sso-callback, /sign-in/factor-one). */}
         <Route path="/sign-in/*?" component={SignInPage} />

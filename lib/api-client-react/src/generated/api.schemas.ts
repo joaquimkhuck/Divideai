@@ -146,3 +146,25 @@ export interface Stats {
   pendingPeople: PendingPerson[];
 }
 
+export interface PaymentsConfig {
+  /** True when STRIPE_SECRET_KEY is configured on the server */
+  enabled: boolean;
+}
+
+export interface CheckoutSession {
+  sessionId: string;
+  url: string;
+}
+
+export interface CheckoutSessionStatus {
+  id: string;
+  /** @nullable */
+  status: string | null;
+  /** @nullable */
+  paymentStatus: string | null;
+  /** @nullable */
+  amountTotal: number | null;
+  /** @nullable */
+  currency: string | null;
+}
+

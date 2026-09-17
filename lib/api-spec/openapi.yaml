@@ -16,6 +16,8 @@ tags:
     description: Aggregated stats
   - name: account
     description: Signed-in account (profile, Pix key, credits)
+  - name: payments
+    description: Stripe test-mode payments
 paths:
   /healthz:
     get:
@@ -153,6 +155,45 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiMessage"
+  /bills/{id}/people/{personId}/checkout:
+    post:
+      operationId: createCheckoutSession
+      tags: [payments]
+      summary: Create a Stripe Checkout Session for one person's share
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: personId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "201":
+          description: Hosted Stripe Checkout URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSession"
+        "400":
+          description: Invalid payment request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+        "404":
+          description: Bill or person not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+        "503":
+          description: Stripe is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
   /account:
     get:
       operationId: getAccount
@@ -238,6 +279,47 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Stats"
+  /payments/config:
+    get:
+      operationId: getPaymentsConfig
+      tags: [payments]
+      summary: Whether Stripe test-mode checkout is available
+      responses:
+        "200":
+          description: Payments config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentsConfig"
+  /payments/checkout-session/{sessionId}:
+    get:
+      operationId: getCheckoutSession
+      tags: [payments]
+      summary: Read the status of a Stripe Checkout Session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Checkout Session status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSessionStatus"
+        "404":
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
+        "503":
+          description: Stripe is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
 components:
   schemas:
     HealthStatus:
@@ -409,3 +491,25 @@ components:
         name: { type: string }
         amountCents: { type: integer }
         restaurantName: { type: ["string", "null"] }
+    PaymentsConfig:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+          description: True when STRIPE_SECRET_KEY is configured on the server
+    CheckoutSession:
+      type: object
+      required: [sessionId, url]
+      properties:
+        sessionId: { type: string }
+        url: { type: string, format: uri }
+    CheckoutSessionStatus:
+      type: object
+      required: [id, status, paymentStatus, amountTotal, currency]
+      properties:
+        id: { type: string }
+        status: { type: ["string", "null"] }
+        paymentStatus: { type: ["string", "null"] }
+        amountTotal: { type: ["integer", "null"] }
+        currency: { type: ["string", "null"] }
