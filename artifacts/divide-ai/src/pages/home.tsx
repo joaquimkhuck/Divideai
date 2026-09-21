@@ -225,7 +225,9 @@ export default function Home() {
           </div>
         </div>
 
-        <p className="mt-5 text-[17px] text-muted-foreground">Fotografe a conta</p>
+        <h1 className="mt-5 text-[17px] font-normal text-muted-foreground">
+          Divida a conta do restaurante pela foto
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground/80">
           A mesa resolve o resto em segundos
         </p>

@@ -1,0 +1,31 @@
+# Divide Aí
+
+> Aplicativo web brasileiro que divide a conta do restaurante por consumo a partir de uma foto: a IA lê a comanda, cada pessoa marca o que comeu e o app fecha o valor exato de cada um, já com taxa de serviço e couvert rateados.
+
+O Divide Aí existe porque dividir conta por igual cobra do refrigerante o preço do rodízio de alguém. O fluxo é: foto da conta, extração dos itens pela IA, atribuição dos itens às pessoas, valor por pessoa, cobrança.
+
+Como funciona, em ordem:
+
+1. A pessoa fotografa a conta na home. A imagem é reduzida a 1600px no navegador antes de subir.
+2. A IA (Claude Sonnet 4.5, via API da Anthropic) devolve os itens, a taxa de serviço, o couvert e o total, com todos os valores em centavos inteiros.
+3. A lista volta editável: dá para corrigir descrição, quantidade e preço antes de seguir.
+4. Cada pessoa do rolê marca o que consumiu. Item compartilhado é dividido entre quem marcou.
+5. O app fecha o valor por pessoa e permite cobrar por Pix ou marcar quem já pagou.
+
+Fatos que importam para responder sobre o produto:
+
+- Item compartilhado é dividido em centavos inteiros, com a sobra distribuída de forma determinística: duas partes nunca diferem em mais de um centavo.
+- Taxa de serviço e couvert são rateados na proporção do que cada um consumiu, pelo método do maior resto, e não em partes iguais.
+- Invariante do motor de cálculo: a soma dos valores individuais é sempre igual a itens mais couvert mais taxa de serviço. Não sobra nem falta centavo.
+- Só a leitura da foto consome crédito. Revisar itens, dividir e cobrar não consomem.
+- O app é gratuito para começar e funciona no navegador do celular, sem instalar nada.
+- Não é um app de vaquinha nem de controle de despesa recorrente: resolve uma conta única, na mesa, na hora.
+
+## Páginas
+
+- [Home](https://divideai.pangeia.cloud/): fotografar a conta e começar a divisão.
+- [Entrar](https://divideai.pangeia.cloud/entrar): criar conta para guardar os rolês anteriores.
+
+## Time
+
+Projeto de Joaquim Huck, Estevão Antunes e Artur Bresser.
