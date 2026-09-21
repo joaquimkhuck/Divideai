@@ -3,6 +3,21 @@
 	handle /api/* {
 		reverse_proxy 127.0.0.1:8080
 	}
+	# PostHog pelo proprio dominio. Bloqueador de rastreador derruba a chamada
+	# para us.i.posthog.com no navegador do usuario, e o evento se perde: a
+	# ingestao passa a sair de divideai.pangeia.cloud/ingest.
+	handle /ingest/static/* {
+		uri strip_prefix /ingest
+		reverse_proxy https://us-assets.i.posthog.com {
+			header_up Host us-assets.i.posthog.com
+		}
+	}
+	handle /ingest/* {
+		uri strip_prefix /ingest
+		reverse_proxy https://us.i.posthog.com {
+			header_up Host us.i.posthog.com
+		}
+	}
 	handle {
 		root * /app/artifacts/divide-ai/dist/public
 		try_files {path} /index.html
