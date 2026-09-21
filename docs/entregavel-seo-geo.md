@@ -1,8 +1,10 @@
 # Divide Aí: entregável de SEO e GEO
 
-Aplicativo: https://divideai.pangeia.cloud
-Repositório: github.com/joaquimkhuck/Divideai
-Time: Joaquim Huck, Estevão Antunes, Artur Bresser
+**Aplicativo:** https://divideai.pangeia.cloud
+
+**Repositório:** github.com/joaquimkhuck/Divideai
+
+**Time:** Joaquim Huck, Estevão Antunes, Artur Bresser
 
 ---
 
