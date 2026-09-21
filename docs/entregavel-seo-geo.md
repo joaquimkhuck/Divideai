@@ -10,16 +10,16 @@ Time: Joaquim Huck, Estevão Antunes, Artur Bresser
 
 ### O que escrevemos
 
-**Title** (51 caracteres)
+**Title** (50 caracteres)
 
 ```
 Divide Aí: divida a conta do restaurante pela foto
 ```
 
-**Meta description** (155 caracteres)
+**Meta description** (150 caracteres)
 
 ```
-Fotografe a conta do restaurante e o Divide Aí separa quem comeu o quê. Cada um paga só o que consumiu, com taxa e couvert no cálculo, e a soma sempre fecha.
+Fotografe a conta do restaurante e o Divide Aí separa quem comeu o quê. Cada um paga só o que consumiu, com taxa e couvert no cálculo, e a soma fecha.
 ```
 
 **H1**
@@ -95,7 +95,65 @@ Essa última linha existe porque a falha típica de um modelo é aproximar o pro
 
 ## 3. As próximas 5 features com score
 
-> Pendente: aplicar o framework de priorização dado em aula sobre as candidatas levantadas.
+### O framework
+
+**RICE**: `(Reach × Impact × Confidence) ÷ Effort`. As unidades foram fixadas antes de pontuar qualquer coisa, senão o score vira opinião com cara de número:
+
+- **Reach**: pessoas alcançadas a cada 100 rolês. A mesa média do PRD tem 4 pessoas, então 100 rolês equivalem a cerca de 400 pessoas, das quais 1 fotografa e 3 são cobradas.
+- **Impact**: 3 massivo, 2 alto, 1 médio, 0,5 baixo.
+- **Confidence**: 100% quando existe código ou diff pronto, 80% quando o caminho técnico é claro, 50% quando depende de comportamento que nunca medimos.
+- **Effort**: semanas de uma pessoa.
+
+As candidatas saíram do PRD, dos mockups já desenhados e do histórico do git, não de brainstorm. Cada linha abaixo tem uma fonte no repositório.
+
+### A tabela
+
+| # | Feature | R | I | C | E | **RICE** |
+|---|---|---|---|---|---|---|
+| 1 | IA sugerir o que é item compartilhado | 400 | 1 | 80% | 0,5 | **640** |
+| 2 | Pix de verdade: BR Code com o valor da parte | 300 | 2 | 50% | 0,5 | **600** |
+| 3 | Link público do rolê para quem foi cobrado | 300 | 2 | 80% | 1 | **480** |
+| 4 | Convidado marca o próprio consumo pelo celular dele | 300 | 3 | 50% | 3 | **150** |
+| 5 | Cache da leitura por hash da imagem | 20 | 1 | 100% | 0,25 | **80** |
+
+### Uma a uma
+
+**1. IA sugerir o que é item compartilhado (640)**
+
+Hoje todo item nasce "SEM DONO" e o botão de avançar só libera quando 100% foi atribuído. Couvert, entrada e porção são quase sempre da mesa inteira, e alguém marca isso na mão toda vez. O prompt de extração passaria a devolver um sinal de "provavelmente compartilhado" e o app pré-marcaria.
+
+Lidera por aritmética, não por ambição: é a única da lista que toca 100% de quem usa o app, e custa meio dia de trabalho porque o campo entra no JSON que a IA já devolve. Impacto 1 porque economiza toques, não desbloqueia nada novo.
+
+**2. Pix de verdade: BR Code com o valor da parte (600)**
+
+O campo de Pix copia só a chave: o valor ainda é digitado à mão no banco, que é exatamente onde o erro de centavo reaparece depois de todo o cuidado do motor de cálculo. Pior: quem não tem conta cobra com `divideai@pix.com.br`, uma chave fictícia que está no código como fallback.
+
+O payload EMV é gerado no próprio cliente, sem backend. Confiança 50% porque não sabemos quantas contas têm chave cadastrada, e essa é a pergunta que o PostHog vai responder em duas semanas.
+
+**3. Link público do rolê para quem foi cobrado (480)**
+
+O PRD tem como P0: "como quem foi cobrado, quero ver o que devo e marcar como pago". Foi entregue pela metade. Hoje a cobrança é um texto aberto no WhatsApp, e a única pessoa que enxerga o rolê é a dona do cookie. O próprio código admite o buraco: um comentário em `payments.ts` registra que o pagador nunca tem o cookie do dono.
+
+**4. Convidado marca o próprio consumo (150)**
+
+Estrategicamente é a maior da lista, e o RICE a coloca em quarto. Vale explicar por quê, em vez de esconder: impacto 3 (é a etapa mais longa do fluxo e o único mecanismo de crescimento viral que o PRD prevê), mas esforço 3 semanas e confiança 50%, porque exige token público, endpoint sem cookie de dono, tela nova e resolver duas pessoas editando o mesmo rolê ao mesmo tempo.
+
+RICE é bom para ordenar trabalho incremental e ruim para apostas estruturais: ele divide por esforço, então toda aposta grande desce na lista. Registramos o número e a ressalva. Se a decisão do time for priorizar crescimento em vez de eficiência, esta sobe, e a justificativa é essa, não o score.
+
+**5. Cache da leitura por hash da imagem (80)**
+
+Não é feature nova, é regressão. O commit `be0e349` criou o cache e um sync posterior do Replit o apagou. Hoje cada leitura repetida chama a IA de novo, gasta um crédito do usuário e US$ 0,014 nossos. Confiança 100% porque o diff existe no histórico. Score baixo porque o alcance é pequeno, e ainda assim entra: é um quarto de semana e devolve crédito cobrado indevidamente.
+
+### O que o score não decide
+
+Duas coisas ficaram fora da tabela de propósito, porque não são features, são decisões:
+
+- **Login obrigatório para escanear.** O commit `c8d96b1` passou a exigir conta antes da primeira foto. O PRD, o README e o `replit.md` prometem, os três, primeiro resultado sem cadastro. Isso atinge 100% de quem chega, no primeiro toque, e precisa de decisão do time, não de priorização.
+- **Chaves de desenvolvimento do Clerk em produção.** O console do app publicado avisa a cada carregamento. É dívida de deploy, não escopo de produto.
+
+### A honestidade do exercício
+
+Os números de Reach desta tabela são estimativa fundamentada, não medição: até hoje o produto não tinha um único evento instrumentado. É justamente o que o entregável do PostHog resolve. Na próxima rodada de priorização, Reach e Confidence saem do painel, e este mesmo cálculo passa a valer o que ele aparenta valer.
 
 ---
 
