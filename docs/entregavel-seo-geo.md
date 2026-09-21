@@ -176,7 +176,7 @@ O código está no app publicado: `posthog-js` inicializado em `artifacts/divide
 
 O token de projeto (`phc_...`) fica no código do cliente porque é público por definição: ele só permite escrever evento, nunca ler dado. As chaves que não podem vazar (Anthropic, Stripe, Clerk) continuam apenas nas variáveis de ambiente do servidor.
 
-**Evidência**: `docs/evidencias/posthog-eventos.jpg`, painel com os eventos `Pageview` e `Pageleave` vindos de `divideai.pangeia.cloud`, library `web`.
+**Evidência**: `docs/evidencias/posthog-eventos.jpg`, painel de Activity filtrado por `Library = web`, ou seja, só o que veio de navegador de verdade, com os `Pageview` e `Pageleave` de `divideai.pangeia.cloud`. O filtro está no print de propósito: durante o diagnóstico do bloqueador disparamos algumas requisições de teste por linha de comando, e elas não são visita de ninguém.
 
 ### O bloqueador de rastreador: o erro que quase passou batido
 
