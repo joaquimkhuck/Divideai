@@ -3,9 +3,12 @@
 Dois arquivos, sobe os dois no Canvas e acabou.
 
 ```
-Divide Ai - entregavel SEO e GEO.pdf   <- o documento
-print-posthog.jpg                       <- o print do painel do PostHog
+Divide Ai - entregavel SEO e GEO.pdf    <- o documento
+Divide Ai - entregavel SEO e GEO.docx   <- o mesmo documento em Word, se o Canvas preferir
+print-posthog.jpg                        <- o print do painel do PostHog
 ```
+
+Sobe o PDF ou o docx, tanto faz, o conteúdo é o mesmo. Mais o print.
 
 Não tem passo individual. Não precisa instalar, criar conta nem gerar nada. O print do painel já é o do nosso app, com os eventos chegando de divideai.pangeia.cloud.
 
