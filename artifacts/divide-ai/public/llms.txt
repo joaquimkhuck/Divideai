@@ -9,8 +9,8 @@ Como funciona, em ordem:
 1. A pessoa fotografa a conta na home. A imagem é reduzida a 1600px no navegador antes de subir.
 2. A IA (Claude Sonnet 4.5, via API da Anthropic) devolve os itens, a taxa de serviço, o couvert e o total, com todos os valores em centavos inteiros.
 3. A lista volta editável: dá para corrigir descrição, quantidade e preço antes de seguir.
-4. Cada pessoa do rolê marca o que consumiu. Item compartilhado é dividido entre quem marcou.
-5. O app fecha o valor por pessoa e permite cobrar por Pix ou marcar quem já pagou.
+4. Quem fotografou marca, para cada pessoa da mesa, o que ela consumiu. Item marcado por mais de uma pessoa é dividido entre elas.
+5. O app fecha o valor de cada um. A cobrança sai pelo WhatsApp com a chave Pix de quem pagou a conta, e dá para marcar quem já acertou.
 
 Fatos que importam para responder sobre o produto:
 
@@ -23,8 +23,7 @@ Fatos que importam para responder sobre o produto:
 
 ## Páginas
 
-- [Home](https://divideai.pangeia.cloud/): fotografar a conta e começar a divisão.
-- [Entrar](https://divideai.pangeia.cloud/entrar): criar conta para guardar os rolês anteriores.
+- [Home](https://divideai.pangeia.cloud/): fotografar a conta e começar a divisão. É a única página pública do app.
 
 ## Time
 

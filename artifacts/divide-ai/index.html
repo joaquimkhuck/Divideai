@@ -12,10 +12,39 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://divideai.pangeia.cloud/" />
     <meta property="og:locale" content="pt_BR" />
+    <meta property="og:image" content="https://divideai.pangeia.cloud/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Divide Aí: divida a conta do restaurante pela foto" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Divide Aí: divida a conta do restaurante pela foto" />
     <meta name="twitter:description" content="Fotografe a conta do restaurante e o Divide Aí separa quem comeu o quê. Cada um paga só o que consumiu, com taxa e couvert no cálculo, e a soma fecha." />
+    <meta name="twitter:image" content="https://divideai.pangeia.cloud/og.png" />
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Divide Aí",
+        "url": "https://divideai.pangeia.cloud/",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web",
+        "inLanguage": "pt-BR",
+        "description": "Fotografe a conta do restaurante e o Divide Aí separa quem comeu o quê. Cada um paga só o que consumiu, com taxa de serviço e couvert rateados na proporção do consumo.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "BRL",
+          "description": "Uso gratuito. A leitura da foto consome um crédito; revisar, dividir e cobrar não consomem."
+        },
+        "featureList": [
+          "Leitura da conta por foto, com os itens extraídos por IA",
+          "Divisão por consumo, item a item, incluindo item compartilhado",
+          "Taxa de serviço e couvert rateados na proporção do consumo",
+          "Cobrança por Pix com o valor exato de cada pessoa"
+        ]
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
@@ -23,12 +52,24 @@
   <body>
     <!-- Conteudo servido no HTML: o app e um SPA, e crawler que nao roda
          JavaScript (GPTBot, PerplexityBot) so leria uma div vazia. O React
-         substitui este bloco ao montar. -->
+         substitui este bloco inteiro ao montar. -->
     <div id="root">
-      <div style="min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;background:#F6F5F2;color:#1F2328;font-family:Nunito,system-ui,sans-serif;text-align:center">
+      <div style="min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px 16px;background:#F6F5F2;color:#1F2328;font-family:Nunito,system-ui,sans-serif;text-align:center">
         <p style="font-size:26px;font-weight:800;margin:0">Divide Aí</p>
         <h1 style="font-size:17px;font-weight:400;color:#6E7378;margin:0">Divida a conta do restaurante pela foto</h1>
-        <p style="font-size:14px;color:#6E7378;margin:0">A mesa resolve o resto em segundos</p>
+        <p style="font-size:14px;color:#6E7378;margin:0 0 8px">A mesa resolve o resto em segundos</p>
+        <div style="max-width:420px;text-align:left;font-size:13px;color:#6E7378;line-height:1.6">
+          <h2 style="font-size:14px;font-weight:700;color:#1F2328;margin:0 0 6px">Como funciona</h2>
+          <ol style="margin:0;padding-left:18px">
+            <li>Você fotografa a conta do restaurante.</li>
+            <li>A IA lê a comanda e devolve os itens, a taxa de serviço e o couvert.</li>
+            <li>A lista volta editável, para corrigir o que a foto não deixou claro.</li>
+            <li>Você marca o que cada pessoa da mesa consumiu.</li>
+            <li>O app fecha o valor de cada um e a cobrança sai por Pix.</li>
+          </ol>
+          <h2 style="font-size:14px;font-weight:700;color:#1F2328;margin:14px 0 6px">Por que a conta fecha</h2>
+          <p style="margin:0">Item compartilhado é dividido em centavos inteiros, e duas partes nunca diferem em mais de um centavo. Taxa de serviço e couvert são rateados na proporção do que cada um consumiu, não em partes iguais. A soma dos valores individuais é sempre igual ao total da conta.</p>
+        </div>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>

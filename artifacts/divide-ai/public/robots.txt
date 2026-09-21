@@ -1,10 +1,12 @@
 # Divide Aí — https://divideai.pangeia.cloud
 # A única página com conteúdo público é a home. O resto é app: telas de
 # fluxo, de conta e de pagamento, que não têm o que indexar.
+#
+# Cada grupo abaixo repete a lista inteira de Disallow de propósito: no
+# protocolo, um grupo com User-agent nomeado substitui o grupo * por
+# completo, ele não herda nada dele.
 
 User-agent: *
-Allow: /$
-Allow: /entrar
 Disallow: /leitura
 Disallow: /erro-leitura
 Disallow: /revisar
@@ -19,34 +21,45 @@ Disallow: /sign-in
 Disallow: /sign-up
 Disallow: /api/
 
-# Crawlers de IA: liberados na home de propósito, para que o produto possa
-# ser citado como resposta em busca generativa (ChatGPT, Perplexity, Gemini).
+# Crawlers que leem a web para responder pergunta em busca generativa.
+# Liberados na home de propósito: queremos poder ser citados como resposta.
 User-agent: GPTBot
-Allow: /$
-Disallow: /api/
-
 User-agent: OAI-SearchBot
-Allow: /$
-Disallow: /api/
-
 User-agent: ChatGPT-User
-Allow: /$
-Disallow: /api/
-
 User-agent: PerplexityBot
-Allow: /$
-Disallow: /api/
-
-User-agent: Google-Extended
-Allow: /$
-Disallow: /api/
-
 User-agent: ClaudeBot
-Allow: /$
+User-agent: Claude-SearchBot
+Disallow: /leitura
+Disallow: /erro-leitura
+Disallow: /revisar
+Disallow: /pessoas
+Disallow: /quem-comeu
+Disallow: /roles
+Disallow: /role/
+Disallow: /perfil
+Disallow: /creditos
+Disallow: /pagamento/
+Disallow: /sign-in
+Disallow: /sign-up
 Disallow: /api/
 
+# Estes dois não são crawlers de busca: são o controle de uso do conteúdo
+# para treino de modelo. Liberados na home pelo mesmo motivo, e sem efeito
+# nenhum sobre aparecer ou não nas respostas.
+User-agent: Google-Extended
 User-agent: Applebot-Extended
-Allow: /$
+Disallow: /leitura
+Disallow: /erro-leitura
+Disallow: /revisar
+Disallow: /pessoas
+Disallow: /quem-comeu
+Disallow: /roles
+Disallow: /role/
+Disallow: /perfil
+Disallow: /creditos
+Disallow: /pagamento/
+Disallow: /sign-in
+Disallow: /sign-up
 Disallow: /api/
 
 Sitemap: https://divideai.pangeia.cloud/sitemap.xml
