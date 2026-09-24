@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { Share } from "@capacitor/share";
@@ -78,6 +78,21 @@ export default function Role() {
     query: { queryKey: getGetPaymentsConfigQueryKey() },
   });
   const stripeEnabled = paymentsConfig?.enabled ?? false;
+
+  // Pagar com Stripe navega pra fora (window.location.assign). Se o usuário
+  // volta pelo botão Voltar do navegador em vez do cancel_url, o Chrome/Safari
+  // restauram a página do bfcache com o botão ainda "Abrindo pagamento...":
+  // destrava o estado e revalida o rolê, já que o pagamento pode ter mudado.
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (!e.persisted) return;
+      checkout.reset();
+      queryClient.invalidateQueries({ queryKey: getGetBillQueryKey(billId) });
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [billId]);
 
   const { isLoaded, isSignedIn } = useAuth();
   const { data: account } = useGetAccount({
