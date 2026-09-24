@@ -7,6 +7,7 @@ import { useAnalyzeBill, ApiError } from "@workspace/api-client-react";
 import type { BillDraft } from "@workspace/api-client-react";
 import { PhoneShell } from "@/components/phone-shell";
 import { useDraft, newItemKey } from "@/store/draft";
+import { isNative } from "@/lib/native";
 
 const STATUS = [
   "Lendo a conta…",
@@ -86,9 +87,17 @@ export default function Leitura() {
           window.setTimeout(() => setLocation("/revisar"), 900);
         },
         onError: (err: Error) => {
-          // 402: conta sem créditos — leva direto para a tela de créditos.
+          // 402: conta sem créditos. No iOS (v1 sem compra de créditos,
+          // regra 3.1.1) mostra um aviso neutro em vez da tela de compra.
           if (err instanceof ApiError && err.status === 402) {
-            setLocation("/creditos", { replace: true });
+            if (isNative) {
+              setLocation("/erro-leitura", {
+                replace: true,
+                state: { semCreditos: true },
+              });
+            } else {
+              setLocation("/creditos", { replace: true });
+            }
             return;
           }
           const rateLimited = err instanceof ApiError && err.status === 429;

@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
+import { Share } from "@capacitor/share";
+import { Browser } from "@capacitor/browser";
 import { Check, Receipt, ChevronLeft, Trash2, Copy, CreditCard } from "lucide-react";
 import { Button } from "@workspace/divide-ai-ds/components/ui/button";
 import { Card } from "@workspace/divide-ai-ds/components/ui/card";
@@ -39,6 +41,7 @@ import { PhoneShell } from "@/components/phone-shell";
 import { formatCents } from "@/lib/money";
 import { formatShortDay, formatRoleDate } from "@/lib/date";
 import { useToast } from "@/hooks/use-toast";
+import { isNative } from "@/lib/native";
 import { useAuth } from "@clerk/react";
 import { UserRound } from "lucide-react";
 import { useGetAccount, getGetAccountQueryKey } from "@workspace/api-client-react";
@@ -66,7 +69,11 @@ export default function Role() {
 
   const setPaid = useSetPersonPaid();
   const deleteBill = useDeleteBill();
-  const checkout = useCreateCheckoutSession();
+  const checkout = useCreateCheckoutSession({
+    // Diz pro servidor pra devolver o Checkout por deep link (T3) — o app
+    // nativo abre o Checkout no navegador do sistema, não na WebView.
+    request: isNative ? { headers: { "X-App-Platform": "ios" } } : undefined,
+  });
   const { data: paymentsConfig } = useGetPaymentsConfig({
     query: { queryKey: getGetPaymentsConfigQueryKey() },
   });
@@ -114,19 +121,33 @@ export default function Role() {
     );
   };
 
-  const cobrarWhatsapp = (person: BillPerson) => {
+  const cobrarWhatsapp = async (person: BillPerson) => {
     const place = bill?.restaurantName ? ` do ${bill.restaurantName}` : "";
     const msg = `Oi, ${person.name}! Fechei a conta${place} no Divide Aí. Sua parte deu ${formatCents(
       person.amountCents
     )}. Pode mandar no Pix: ${pixKey} 🙏`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+    // No app, a folha de compartilhamento nativa deixa escolher WhatsApp e
+    // qualquer outro app; no web mantém o link direto pro WhatsApp (R1).
+    if (isNative) {
+      await Share.share({ text: msg });
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+    }
   };
 
   const pagarComStripe = (person: BillPerson) => {
     checkout.mutate(
       { id: billId, personId: person.id },
       {
-        onSuccess: ({ url }) => window.location.assign(url),
+        onSuccess: async ({ url }) => {
+          // WKWebView não deixa sair do bundle pro Checkout do Stripe — abre
+          // no navegador do sistema e volta por deep link (T3).
+          if (isNative) {
+            await Browser.open({ url });
+          } else {
+            window.location.assign(url);
+          }
+        },
         onError: () =>
           toast({
             title: "Não consegui abrir o pagamento",

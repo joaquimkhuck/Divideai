@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { DraftProvider } from '@/store/draft';
 import { ClaimBills } from '@/components/claim-bills';
+import { isNative } from '@/lib/native';
 import NotFound from '@/pages/not-found';
 import Home from '@/pages/home';
 import Leitura from '@/pages/leitura';
@@ -96,7 +97,14 @@ const clerkAppearance = {
     alertText: 'text-[#1F2328]',
     logoBox: 'justify-center',
     logoImage: 'h-8',
-    socialButtonsBlockButton: 'border-[#E7E5E0] rounded-full',
+    // T2 — o Google do Clerk roda como popup/redirect dentro da própria
+    // WKWebView, e o Google recusa login OAuth em WebView embutida
+    // (disallowed_useragent). Sem tempo pro fluxo completo por navegador do
+    // sistema + deep link nesta rodada, escondemos o social login no app
+    // nativo e deixamos só o e-mail (código/senha, conforme o Clerk estiver
+    // configurado). Pendência: ver docs/plano-lancamento-apple.md T2.
+    socialButtonsBlockButton: `border-[#E7E5E0] rounded-full${isNative ? ' hidden' : ''}`,
+    dividerRow: isNative ? 'hidden' : '',
     formButtonPrimary: 'rounded-full font-bold',
     formFieldInput: 'rounded-2xl border-[#E7E5E0]',
     footerAction: 'justify-center',

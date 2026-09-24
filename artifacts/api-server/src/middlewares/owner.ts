@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Request, Response, NextFunction } from "express";
 
 const COOKIE_NAME = "divideai_owner";
+const HEADER_NAME = "x-owner-token";
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 // UUID v4 format — reject anything a client might have tampered with.
 const TOKEN_RE =
@@ -19,8 +20,21 @@ declare global {
  * Anonymous owner identity: issues an httpOnly cookie with a random UUID on
  * first use and exposes it as `req.ownerToken`. No login required — bills
  * are scoped to this token.
+ *
+ * Native clients (Capacitor, where `capacitor://localhost` can't hold a
+ * cross-origin cookie) send the same UUID via the `X-Owner-Token` header
+ * instead — they generate it once on-device and persist it themselves. The
+ * header takes precedence and skips the cookie entirely; the cookie flow
+ * below is untouched for the web.
  */
 export function ownerToken(req: Request, res: Response, next: NextFunction) {
+  const headerToken = req.header(HEADER_NAME);
+  if (headerToken && TOKEN_RE.test(headerToken)) {
+    req.ownerToken = headerToken;
+    next();
+    return;
+  }
+
   let token: string | undefined = req.cookies?.[COOKIE_NAME];
   if (!token || !TOKEN_RE.test(token)) {
     token = randomUUID();

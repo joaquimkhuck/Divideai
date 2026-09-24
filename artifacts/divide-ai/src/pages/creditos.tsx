@@ -15,12 +15,18 @@ import {
 import { PhoneShell } from "@/components/phone-shell";
 import { useToast } from "@/hooks/use-toast";
 import { formatCents } from "@/lib/money";
+import { isNative } from "@/lib/native";
 
 export default function Creditos() {
   const [, setLocation] = useLocation();
   const { isLoaded, isSignedIn } = useAuth();
   const { toast } = useToast();
   const [escolhido, setEscolhido] = useState(1);
+
+  // v1 do iOS não vende créditos (regra 3.1.1 da Apple) — sem tela de compra.
+  useEffect(() => {
+    if (isNative) setLocation("/perfil", { replace: true });
+  }, [setLocation]);
 
   // Créditos são da conta — sem conta, primeiro a tela de entrar.
   useEffect(() => {

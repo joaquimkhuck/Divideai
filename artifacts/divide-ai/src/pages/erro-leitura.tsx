@@ -22,8 +22,10 @@ export default function ErroLeitura() {
 
   const navState = (window.history.state?.state ?? {}) as {
     rateLimited?: boolean;
+    semCreditos?: boolean;
   };
   const rateLimited = navState.rateLimited === true;
+  const semCreditos = navState.semCreditos === true;
 
   const handleFile = async (file: File) => {
     try {
@@ -56,6 +58,52 @@ export default function ErroLeitura() {
     }));
     setLocation("/revisar");
   };
+
+  if (semCreditos) {
+    return (
+      <PhoneShell className="px-6 pb-8 pt-14">
+        <h1 className="text-[26px] font-bold leading-tight">
+          Sem leituras disponíveis
+        </h1>
+
+        <div className="mt-8 flex justify-center">
+          <div className="flex flex-col items-center">
+            <div
+              className="flex items-center justify-center rounded-2xl bg-card shadow-[0_2px_8px_rgba(31,35,40,0.06)]"
+              style={{ width: 128, height: 160, border: "2px solid #C4472F" }}
+            >
+              <ImageOff className="h-8 w-8 text-muted-foreground/60" />
+            </div>
+          </div>
+        </div>
+
+        <Card className="mt-10 p-4">
+          <p className="text-[17px]">
+            Essa conta já usou as leituras por foto disponíveis. Digite os
+            itens na mão para continuar dividindo.
+          </p>
+        </Card>
+
+        <div className="mt-auto flex flex-col gap-3 pt-8">
+          <Button
+            size="lg"
+            data-testid="button-manual-entry"
+            onClick={digitarNaMao}
+          >
+            <Keyboard className="h-5 w-5" />
+            Digitar itens na mão
+          </Button>
+          <Button
+            variant="ghost"
+            size="lg"
+            onClick={() => setLocation("/")}
+          >
+            Voltar ao início
+          </Button>
+        </div>
+      </PhoneShell>
+    );
+  }
 
   if (rateLimited) {
     return (

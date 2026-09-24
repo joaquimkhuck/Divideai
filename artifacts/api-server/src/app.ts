@@ -39,7 +39,21 @@ app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 // Non-credentialed CORS only: the owner cookie is the sole credential, so we
 // never set Access-Control-Allow-Credentials — browsers will refuse to expose
 // credentialed cross-origin responses, keeping the cookie same-origin-only.
-app.use(cors());
+// origin: true reflects the request's Origin header (same effect as no
+// origin option) but keeps this explicit for the iOS app, which calls the
+// API cross-origin from capacitor://localhost (or ionic://localhost) using
+// the X-Owner-Token header instead of the cookie.
+app.use(
+  cors({
+    origin: true,
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Owner-Token",
+      "X-App-Platform",
+    ],
+  }),
+);
 app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

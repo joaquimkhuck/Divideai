@@ -17,6 +17,7 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _ownerTokenGetter: AuthTokenGetter | null = null;
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -42,6 +43,20 @@ export function setBaseUrl(url: string | null): void {
  */
 export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
   _authTokenGetter = getter;
+}
+
+/**
+ * Register a getter that supplies the anonymous owner token as the
+ * `X-Owner-Token` header on every request.
+ *
+ * Used by the Capacitor (iOS) build: `capacitor://localhost` can't hold the
+ * web's cross-origin owner cookie, so the native client generates a UUID
+ * once, stores it on-device, and sends it via this header instead. The web
+ * app never calls this — it keeps using the httpOnly cookie.
+ * Pass `null` to clear the getter.
+ */
+export function setOwnerTokenGetter(getter: AuthTokenGetter | null): void {
+  _ownerTokenGetter = getter;
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -355,6 +370,13 @@ export async function customFetch<T = unknown>(
     const token = await _authTokenGetter();
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
+    }
+  }
+
+  if (_ownerTokenGetter && !headers.has("x-owner-token")) {
+    const token = await _ownerTokenGetter();
+    if (token) {
+      headers.set("x-owner-token", token);
     }
   }
 
