@@ -27,6 +27,7 @@ import {
 import { PhoneShell } from "@/components/phone-shell";
 import { formatCents } from "@/lib/money";
 import { useToast } from "@/hooks/use-toast";
+import { isNative } from "@/lib/native";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -232,18 +233,23 @@ export default function Perfil() {
               </p>
               <p className="mt-1 text-[17px] font-bold tabular-nums" data-testid="text-creditos">
                 {account
-                  ? `${account.creditBalance} ${account.creditBalance === 1 ? "conta" : "contas"} restantes`
+                  ? account.creditBalance > 0
+                    ? `${account.creditBalance} ${account.creditBalance === 1 ? "conta" : "contas"} restantes`
+                    : "Sem leituras disponíveis"
                   : "…"}
               </p>
             </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              data-testid="button-ver-creditos"
-              onClick={() => setLocation("/creditos")}
-            >
-              Ver créditos
-            </Button>
+            {/* v1 do iOS não vende créditos (regra 3.1.1 da Apple) — sem link de compra */}
+            {!isNative && (
+              <Button
+                variant="secondary"
+                size="sm"
+                data-testid="button-ver-creditos"
+                onClick={() => setLocation("/creditos")}
+              >
+                Ver créditos
+              </Button>
+            )}
           </div>
         </Card>
 

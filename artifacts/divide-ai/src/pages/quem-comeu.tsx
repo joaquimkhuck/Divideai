@@ -1,6 +1,7 @@
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft } from "lucide-react";
+import { Haptics, NotificationType } from "@capacitor/haptics";
 import { Button } from "@workspace/divide-ai-ds/components/ui/button";
 import { ItemCard } from "@workspace/divide-ai-ds/components/ui/item-card";
 import {
@@ -13,6 +14,7 @@ import { PhoneShell } from "@/components/phone-shell";
 import { useDraft } from "@/store/draft";
 import { formatCents } from "@/lib/money";
 import { useToast } from "@/hooks/use-toast";
+import { isNative } from "@/lib/native";
 
 export default function QuemComeu() {
   const [, setLocation] = useLocation();
@@ -60,6 +62,7 @@ export default function QuemComeu() {
       },
       {
         onSuccess: (bill: Bill) => {
+          if (isNative) void Haptics.notification({ type: NotificationType.Success });
           queryClient.invalidateQueries({ queryKey: getListBillsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetStatsQueryKey() });
           setLocation(`/role/${bill.id}`);
