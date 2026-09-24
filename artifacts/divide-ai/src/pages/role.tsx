@@ -359,9 +359,22 @@ export default function Role() {
       {/* Footer status */}
       <div className="mt-auto pt-8">
         {bill.settled ? (
-          <div className="flex items-center justify-center gap-2">
-            <Badge variant="paid">Fechado</Badge>
-            <p className="text-sm text-muted-foreground">Todo mundo pagou</p>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-center gap-2">
+              <Badge variant="paid">Fechado</Badge>
+              <p className="text-sm text-muted-foreground">Todo mundo pagou</p>
+            </div>
+            <Button
+              size="lg"
+              data-testid="button-finalizar"
+              onClick={() => {
+                toast({ title: "Rolê finalizado", description: "Ele fica guardado nos seus rolês." });
+                setLocation("/roles");
+              }}
+            >
+              <Check className="h-5 w-5" />
+              Finalizar rolê
+            </Button>
           </div>
         ) : (
           <p className="text-center text-sm text-muted-foreground">

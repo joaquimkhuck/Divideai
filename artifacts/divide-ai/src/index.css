@@ -1,2 +1,10 @@
 @layer theme, base, clerk, components, utilities;
 @import "@workspace/divide-ai-ds/styles.css";
+
+/* Linha de leitura que varre a foto da conta na tela /leitura. */
+@keyframes divideai-scan {
+  0% { top: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}

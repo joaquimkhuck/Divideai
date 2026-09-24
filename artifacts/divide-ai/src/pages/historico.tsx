@@ -14,6 +14,7 @@ import type { Bill } from "@workspace/api-client-react";
 import { PhoneShell } from "@/components/phone-shell";
 import { formatCents } from "@/lib/money";
 import { formatRoleDate } from "@/lib/date";
+import { useUser } from "@clerk/react";
 
 function AvatarStack({ names }: { names: string[] }) {
   return (
@@ -57,7 +58,8 @@ function RoleCard({ bill, onOpen }: { bill: Bill; onOpen: () => void }) {
               {bill.restaurantName ?? "Rolê"}
             </p>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              {formatRoleDate(bill.createdAt)}
+              {formatRoleDate(bill.createdAt)} ·{" "}
+              {bill.items.length} {bill.items.length === 1 ? "item" : "itens"}
             </p>
           </div>
           <p className="shrink-0 text-xl font-extrabold tabular-nums">
@@ -85,7 +87,9 @@ function RoleCard({ bill, onOpen }: { bill: Bill; onOpen: () => void }) {
 export default function Historico() {
   const [, setLocation] = useLocation();
 
-  const { data: bills, isLoading } = useListBills({
+  const { user } = useUser();
+  const email = user?.primaryEmailAddress?.emailAddress;
+  const { data: bills, isLoading, isError, refetch } = useListBills({
     query: { queryKey: getListBillsQueryKey() },
   });
   const { data: stats } = useGetStats({
@@ -109,6 +113,11 @@ export default function Historico() {
         <p className="text-sm text-muted-foreground">Início</p>
       </div>
       <h1 className="mt-2 text-[26px] font-bold leading-tight">Seus rolês</h1>
+      {email && (
+        <p className="mt-1 truncate text-xs text-muted-foreground" data-testid="text-account-email">
+          Conta {email}
+        </p>
+      )}
       {(bills?.length ?? 0) > 0 && (
         <p className="mt-1 text-sm text-muted-foreground">
           {pendingBills === 0
@@ -130,6 +139,20 @@ export default function Historico() {
               className="h-32 animate-pulse rounded-3xl bg-secondary"
             />
           ))}
+        </div>
+      ) : isError ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+          <EmptyState
+            title="Não consegui carregar seus rolês"
+            description="Confira a internet e tente de novo."
+          />
+          <Button
+            variant="secondary"
+            data-testid="button-retry-bills"
+            onClick={() => void refetch()}
+          >
+            Tentar de novo
+          </Button>
         </div>
       ) : (bills?.length ?? 0) === 0 ? (
         <>

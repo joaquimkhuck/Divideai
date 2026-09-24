@@ -19,6 +19,7 @@ export default function Leitura() {
   const { draft, setDraft } = useDraft();
   const [passo, setPasso] = useState(0);
   const [achados, setAchados] = useState<string[]>([]);
+  const [foto, setFoto] = useState<string | undefined>(draft.photoPreview ?? undefined);
   const startedRef = useRef(false);
 
   const analyze = useAnalyzeBill();
@@ -29,7 +30,7 @@ export default function Leitura() {
   useEffect(() => {
     const t = setInterval(
       () => setPasso((p) => Math.min(p + 1, STATUS.length - 1)),
-      1600
+      2500
     );
     return () => clearInterval(t);
   }, []);
@@ -48,6 +49,7 @@ export default function Leitura() {
       setLocation("/");
       return;
     }
+    setFoto(imageBase64);
 
     analyzeRef.current(
       { data: { imageBase64 } },
@@ -99,17 +101,74 @@ export default function Leitura() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
 
+  const done = achados.length > 0;
+
   return (
     <PhoneShell>
       <main className="flex flex-1 flex-col items-center justify-center px-6">
-        <ScanProgress
-          size={128}
-          src={draft.photoPreview ?? undefined}
-          label={STATUS[Math.min(passo, STATUS.length - 1)]}
-        />
+        {foto ? (
+          <div
+            role="status"
+            aria-label={done ? "Conta lida" : STATUS[passo]}
+            className="relative w-full max-w-56 overflow-hidden rounded-3xl bg-foreground/90 shadow-[0_8px_24px_rgba(31,35,40,0.12)]"
+            style={{ aspectRatio: "3 / 4" }}
+          >
+            <img
+              src={foto}
+              alt="Foto da conta"
+              className="h-full w-full object-cover opacity-80"
+            />
+            {!done && (
+              <div
+                aria-hidden="true"
+                className="absolute inset-x-0 h-16 -translate-y-full bg-gradient-to-b from-transparent to-primary/35 motion-reduce:hidden"
+                style={{ animation: "divideai-scan 2.2s ease-in-out infinite" }}
+              >
+                <div className="absolute inset-x-0 bottom-0 h-0.5 bg-primary shadow-[0_0_12px_2px_rgba(42,92,255,0.6)]" />
+              </div>
+            )}
+          </div>
+        ) : (
+          <ScanProgress size={128} label={STATUS[passo]} />
+        )}
+
+        <p className="mt-8 text-[20px] font-bold">
+          {done ? "Conta lida" : "Lendo a sua conta"}
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {done ? "Abrindo os itens para você revisar" : "Costuma levar uns 8 segundos"}
+        </p>
+
+        <ol className="mt-6 w-full max-w-64 space-y-3">
+          {STATUS.map((etapa, i) => {
+            const estado = done || i < passo ? "feito" : i === passo ? "agora" : "depois";
+            return (
+              <li key={etapa} className="flex items-center gap-3 text-sm">
+                {estado === "feito" ? (
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#2E9E6B] text-white">
+                    <Check className="h-3 w-3" strokeWidth={3} />
+                  </span>
+                ) : estado === "agora" ? (
+                  <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-border border-t-primary [animation-duration:0.9s]" />
+                ) : (
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                    <span className="h-1.5 w-1.5 rounded-full bg-border" />
+                  </span>
+                )}
+                <span
+                  className={
+                    estado === "depois" ? "text-muted-foreground/60" : estado === "agora" ? "font-bold" : "text-muted-foreground"
+                  }
+                >
+                  {etapa.replace("…", "")}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
 
         <div
-          className="mt-8 min-h-24 w-full max-w-64 space-y-2"
+          className="mt-6 min-h-16 w-full max-w-64 space-y-2 border-t border-border pt-4 empty:border-transparent"
           aria-live="polite"
         >
           {achados.map((linha) => (

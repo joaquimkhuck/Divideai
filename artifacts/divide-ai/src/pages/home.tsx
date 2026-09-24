@@ -121,7 +121,14 @@ export default function Home() {
     <PhoneShell>
       {/* Top: brand + quiet pending mention */}
       <header className="flex items-center justify-between px-6 pt-8">
-        <p className="text-[26px] font-bold leading-none" data-testid="text-brand">
+        <p className="flex items-center gap-2.5 text-[24px] font-extrabold leading-none" data-testid="text-brand">
+          <img
+            src={`${import.meta.env.BASE_URL}favicon.svg`}
+            alt=""
+            width={32}
+            height={32}
+            className="h-8 w-8"
+          />
           Divide Aí
         </p>
         <div className="flex items-center gap-2">
