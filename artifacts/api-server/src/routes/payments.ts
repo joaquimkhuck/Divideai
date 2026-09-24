@@ -70,6 +70,18 @@ router.post("/bills/:id/people/:personId/checkout", async (req, res) => {
     return;
   }
 
+  // App nativo: o checkout abre no navegador do sistema (@capacitor/browser),
+  // então a volta precisa ser por deep link — capacitor://localhost não é
+  // navegável de fora do app. O header não é credencial, só troca a URL de
+  // retorno; qualquer chamador pode mandá-lo.
+  const isNativeReturn = req.header("x-app-platform") === "ios";
+  const successUrl = isNativeReturn
+    ? "divideai://pagamento/sucesso?session_id={CHECKOUT_SESSION_ID}"
+    : `${origin}/pagamento/sucesso?session_id={CHECKOUT_SESSION_ID}`;
+  const cancelUrl = isNativeReturn
+    ? `divideai://role/${id}`
+    : `${origin}/role/${id}`;
+
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     line_items: [
@@ -89,8 +101,8 @@ router.post("/bills/:id/people/:personId/checkout", async (req, res) => {
       billId: String(id),
       personId: String(personId),
     },
-    success_url: `${origin}/pagamento/sucesso?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/role/${id}`,
+    success_url: successUrl,
+    cancel_url: cancelUrl,
   });
 
   if (!session.url) {
