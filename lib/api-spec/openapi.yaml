@@ -601,13 +601,16 @@ components:
         url: { type: string, format: uri }
     CheckoutSessionStatus:
       type: object
-      required: [status, paymentStatus, amountTotal, personName, restaurantName]
+      required: [status, paymentStatus, amountTotal, personName, restaurantName, billId]
       properties:
         status: { type: ["string", "null"] }
         paymentStatus: { type: ["string", "null"] }
         amountTotal: { type: ["integer", "null"] }
         personName: { type: ["string", "null"] }
         restaurantName: { type: ["string", "null"] }
+        billId:
+          type: integer
+          description: Bill this payment belongs to, so the client can navigate back to it
     CreditPackage:
       type: object
       required: [id, credits, amountCents]

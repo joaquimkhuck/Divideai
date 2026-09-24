@@ -167,6 +167,8 @@ export interface CheckoutSessionStatus {
   personName: string | null;
   /** @nullable */
   restaurantName: string | null;
+  /** Bill this payment belongs to, so the client can navigate back to it */
+  billId: number;
 }
 
 export interface CreditPackage {

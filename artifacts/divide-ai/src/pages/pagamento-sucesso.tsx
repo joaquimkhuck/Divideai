@@ -1,8 +1,13 @@
+import { useEffect } from "react";
 import { CheckCircle2, ChevronLeft, CreditCard } from "lucide-react";
 import { useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetCheckoutSessionQueryKey,
   useGetCheckoutSession,
+  getGetBillQueryKey,
+  getListBillsQueryKey,
+  getGetStatsQueryKey,
 } from "@workspace/api-client-react";
 import { Button } from "@workspace/divide-ai-ds/components/ui/button";
 import { Card } from "@workspace/divide-ai-ds/components/ui/card";
@@ -11,6 +16,7 @@ import { formatCents } from "@/lib/money";
 
 export default function PagamentoSucesso() {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const sessionId = new URLSearchParams(window.location.search).get("session_id") ?? "";
   const { data, isLoading, isError } = useGetCheckoutSession(sessionId, {
     query: {
@@ -21,16 +27,28 @@ export default function PagamentoSucesso() {
   });
 
   const pago = data?.paymentStatus === "paid";
+  const voltarAoRole = () =>
+    setLocation(data ? `/role/${data.billId}` : "/");
+
+  // A pessoa já foi marcada como paga no servidor (ver checkout-session route);
+  // invalida o rolê pra ele refletir isso assim que o usuário voltar.
+  useEffect(() => {
+    if (pago && data) {
+      queryClient.invalidateQueries({ queryKey: getGetBillQueryKey(data.billId) });
+      queryClient.invalidateQueries({ queryKey: getListBillsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetStatsQueryKey() });
+    }
+  }, [pago, data, queryClient]);
 
   return (
     <PhoneShell className="px-6 pb-8 pt-14">
       <button
         type="button"
         className="-ml-2 flex items-center gap-1 self-start text-sm text-muted-foreground"
-        onClick={() => setLocation("/")}
+        onClick={voltarAoRole}
       >
         <ChevronLeft className="h-4 w-4" />
-        Início
+        Rolê
       </button>
 
       <div className="flex flex-1 flex-col items-center justify-center text-center">
@@ -76,8 +94,8 @@ export default function PagamentoSucesso() {
         )}
       </div>
 
-      <Button size="lg" onClick={() => setLocation("/")}>
-        Voltar ao início
+      <Button size="lg" onClick={voltarAoRole}>
+        Voltar ao rolê
       </Button>
     </PhoneShell>
   );

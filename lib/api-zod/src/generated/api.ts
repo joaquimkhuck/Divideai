@@ -340,7 +340,8 @@ export const GetCheckoutSessionResponse = zod.object({
   "paymentStatus": zod.string().nullable(),
   "amountTotal": zod.int().nullable(),
   "personName": zod.string().nullable(),
-  "restaurantName": zod.string().nullable()
+  "restaurantName": zod.string().nullable(),
+  "billId": zod.int().describe('Bill this payment belongs to, so the client can navigate back to it')
 })
 
 

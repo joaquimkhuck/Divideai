@@ -172,6 +172,7 @@ router.get("/payments/checkout-session/:sessionId", async (req, res) => {
       amountTotal: session.amount_total,
       personName: person.name,
       restaurantName: person.restaurantName,
+      billId,
     }),
   );
 });
