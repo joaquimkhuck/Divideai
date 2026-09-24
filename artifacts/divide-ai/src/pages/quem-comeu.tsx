@@ -1,12 +1,15 @@
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft } from "lucide-react";
+import { ApiError } from "@workspace/api-client-react";
 import { Button } from "@workspace/divide-ai-ds/components/ui/button";
 import { ItemCard } from "@workspace/divide-ai-ds/components/ui/item-card";
 import {
   useCreateBill,
   getListBillsQueryKey,
   getGetStatsQueryKey,
+  getGetAccountQueryKey,
+  getAccount,
 } from "@workspace/api-client-react";
 import type { Bill } from "@workspace/api-client-react";
 import { PhoneShell } from "@/components/phone-shell";
@@ -59,12 +62,24 @@ export default function QuemComeu() {
         },
       },
       {
-        onSuccess: (bill: Bill) => {
+        onSuccess: async (bill: Bill) => {
           queryClient.invalidateQueries({ queryKey: getListBillsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetStatsQueryKey() });
+          const account = await getAccount();
+          queryClient.setQueryData(getGetAccountQueryKey(), account);
+          toast({
+            title: "Conta confirmada",
+            description: `Você usou 1 crédito. Saldo: ${account.creditBalance} ${
+              account.creditBalance === 1 ? "crédito" : "créditos"
+            }.`,
+          });
           setLocation(`/role/${bill.id}`);
         },
-        onError: () => {
+        onError: (err: Error) => {
+          if (err instanceof ApiError && err.status === 402) {
+            setLocation("/creditos", { replace: true });
+            return;
+          }
           toast({
             title: "Não consegui fechar a conta",
             description: "Tente de novo em instantes.",
@@ -122,13 +137,17 @@ export default function QuemComeu() {
       </main>
 
       <footer className="space-y-2 px-6 pb-8 pt-2">
-        {semDono > 0 && (
+        {semDono > 0 ? (
           <p className="text-center text-sm text-muted-foreground">
             {semDono === 1
               ? "Falta decidir 1 item para fechar a conta"
               : `Faltam decidir ${semDono} itens para fechar a conta`}
           </p>
-        )}
+        ) : allAssigned ? (
+          <p className="text-center text-sm text-muted-foreground">
+            Confirmar conta · usa 1 crédito
+          </p>
+        ) : null}
         <Button
           size="lg"
           data-testid="button-close-bill"
