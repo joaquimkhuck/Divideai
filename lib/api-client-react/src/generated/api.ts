@@ -318,7 +318,7 @@ export const createBill = async (billInput: BillInput, options?: Parameters<type
 
 
 
-export const getCreateBillMutationOptions = <TError = ErrorType<unknown>,
+export const getCreateBillMutationOptions = <TError = ErrorType<ApiMessage>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBill>>, TError,{data: BodyType<BillInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createBill>>, TError,{data: BodyType<BillInput>}, TContext> => {
 
@@ -347,12 +347,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateBillMutationResult = NonNullable<Awaited<ReturnType<typeof createBill>>>
     export type CreateBillMutationBody = BodyType<BillInput>
-    export type CreateBillMutationError = ErrorType<unknown>
+    export type CreateBillMutationError = ErrorType<ApiMessage>
 
     /**
  * @summary Create a bill with items, people and assignments
  */
-export const useCreateBill = <TError = ErrorType<unknown>,
+export const useCreateBill = <TError = ErrorType<ApiMessage>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBill>>, TError,{data: BodyType<BillInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createBill>>,
