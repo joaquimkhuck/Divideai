@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { ChevronLeft, Plus, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@workspace/divide-ai-ds/components/ui/button";
@@ -18,6 +19,18 @@ import { formatCents, centsToInput, maskBRL, inputToCents } from "@/lib/money";
 export default function Revisar() {
   const [, setLocation] = useLocation();
   const { draft, setDraft } = useDraft();
+  // Texto do campo separado do número, para aceitar "7," enquanto digita.
+  const [feeInput, setFeeInput] = useState(() =>
+    draft.serviceFeePercent.toLocaleString("pt-BR", { maximumFractionDigits: 2 })
+  );
+  const setFee = (texto: string) => {
+    const limpo = texto.replace(/[^\d,]/g, "").replace(/(,\d{0,2}).*$/, "$1");
+    setFeeInput(limpo);
+    setDraft((d) => ({
+      ...d,
+      serviceFeePercent: Math.min(100, Number(limpo.replace(",", ".")) || 0),
+    }));
+  };
 
   const updateItem = (key: string, patch: Partial<DraftItem>) => {
     setDraft((d) => ({
@@ -174,17 +187,9 @@ export default function Revisar() {
             <p className="text-[17px]">Taxa de serviço</p>
             <div className="flex items-center gap-2">
               <Input
-                value={String(draft.serviceFeePercent)}
-                onChange={(e) =>
-                  setDraft((d) => ({
-                    ...d,
-                    serviceFeePercent: Math.max(
-                      0,
-                      Number(e.target.value.replace(/\D/g, "")) || 0
-                    ),
-                  }))
-                }
-                inputMode="numeric"
+                value={feeInput}
+                onChange={(e) => setFee(e.target.value)}
+                inputMode="decimal"
                 aria-label="Porcentagem da taxa de serviço"
                 data-testid="input-service-fee"
                 className="h-11 w-16 px-3 text-right text-[15px] tabular-nums"
@@ -195,6 +200,24 @@ export default function Revisar() {
               </p>
             </div>
           </div>
+
+          {draft.serviceFeePercent === 0 && (
+            <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#C98A2D]/12 px-3 py-2">
+              <p className="text-sm" style={{ color: "#C98A2D" }}>
+                A conta não mostra taxa de serviço.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                data-testid="button-add-service-fee"
+                onClick={() => setFee("10")}
+                className="h-8 shrink-0 rounded-full px-3 text-xs"
+              >
+                Adicionar 10%
+              </Button>
+            </div>
+          )}
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-[17px]">Couvert</p>
