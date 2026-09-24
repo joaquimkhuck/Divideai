@@ -93,6 +93,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Bill"
+        "402":
+          description: Not enough credits to confirm the bill
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessage"
   /bills/{id}:
     get:
       operationId: getBill

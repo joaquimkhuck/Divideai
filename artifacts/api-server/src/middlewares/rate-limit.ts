@@ -8,7 +8,12 @@ interface Bucket {
 /**
  * Minimal in-memory fixed-window rate limiter for expensive endpoints.
  * Keys on client IP (cannot be reset by minting a new owner cookie).
- * Task 4 will layer proper per-user credit accounting on top of this.
+ * The photo read (POST /bills/analyze) no longer debits a credit — the
+ * credit is spent on confirm (POST /bills) instead — so this limiter is the
+ * only thing capping how many paid AI calls a signed-in account can trigger
+ * per hour; without it a positive balance would let someone hammer the AI
+ * endpoint for free (10 reads/hour, in-memory only — resets on restart and
+ * isn't shared across server instances).
  */
 export function rateLimit(opts: { max: number; windowMs: number }) {
   const buckets = new Map<string, Bucket>();

@@ -118,14 +118,14 @@ async function loadBills(bills: BillRow[]) {
 const analyzeLimiter = rateLimit({ max: 10, windowMs: 60 * 60 * 1000 });
 
 router.post("/bills/analyze", requireAuth, analyzeLimiter, async (req, res) => {
-  // Credit model: signed-in accounts spend 1 credit per photo analysis.
-  // requireAuth above guarantees userId here; still IP rate-limited too.
-  // Debit atomically BEFORE the paid AI call (conditional decrement), so
-  // concurrent requests cannot all pass a stale balance check; refunded below
-  // when the read fails.
+  // Credit model: the photo read itself is free to try; the credit is spent
+  // when the user confirms the bill (POST /bills), not here. Reading still
+  // requires a positive balance, so an account can't queue up unlimited paid
+  // AI calls it will never be able to confirm — and it stays IP rate-limited
+  // (analyzeLimiter) since a read has no other cost gate at this point.
   const userId = getUserId(req);
 
-  // Validate the payload BEFORE debiting, so bad input never costs a credit.
+  // Validate the payload BEFORE calling the AI, cheap checks first.
   const { imageBase64 } = AnalyzeBillBody.parse(req.body);
   const raw = imageBase64.replace(/^data:image\/\w+;base64,/, "");
   if (
@@ -143,38 +143,19 @@ router.post("/bills/analyze", requireAuth, analyzeLimiter, async (req, res) => {
     return;
   }
 
-  let debited = false;
   if (userId) {
-    await ensureAccount(userId);
-    const rows = await db
-      .update(accountsTable)
-      .set({ creditBalance: sql`${accountsTable.creditBalance} - 1` })
-      .where(
-        and(eq(accountsTable.userId, userId), gt(accountsTable.creditBalance, 0)),
-      )
-      .returning({ id: accountsTable.userId });
-    if (rows.length === 0) {
+    const account = await ensureAccount(userId);
+    if (account.creditBalance <= 0) {
       res.status(402).json({
         message: "Seus créditos acabaram. Compre mais para ler novas contas.",
       });
       return;
     }
-    debited = true;
   }
-  const refund = async () => {
-    if (!userId || !debited) return;
-    debited = false;
-    await db
-      .update(accountsTable)
-      .set({ creditBalance: sql`${accountsTable.creditBalance} + 1` })
-      .where(eq(accountsTable.userId, userId));
-  };
   try {
     const draft = await analyzeBillImage(imageBase64);
     res.json(AnalyzeBillResponse.parse(draft));
   } catch (err) {
-    // Failed reads don't cost a credit.
-    await refund();
     if (err instanceof BillReadError) {
       res.status(422).json({ message: "Não conseguimos ler essa foto." });
       return;
@@ -192,6 +173,9 @@ router.get("/bills", async (req, res) => {
     .orderBy(desc(billsTable.createdAt));
   res.json(ListBillsResponse.parse(await loadBills(bills)));
 });
+
+/** Thrown inside the create-bill transaction to trigger a rollback + 402. */
+class InsufficientCreditsError extends Error {}
 
 router.post("/bills", async (req, res) => {
   const input = CreateBillBody.parse(req.body);
@@ -222,49 +206,79 @@ router.post("/bills", async (req, res) => {
     input.couvertCents,
   );
 
-  const billId = await db.transaction(async (tx) => {
-    const [bill] = await tx
-      .insert(billsTable)
-      .values({
-        ownerToken: req.ownerToken,
-        userId: getUserId(req),
-        restaurantName: input.restaurantName ?? null,
-        serviceFeePercent: input.serviceFeePercent,
-        couvertCents: input.couvertCents,
-        totalCents: split.totalCents,
-      })
-      .returning();
+  // Credit model: confirming the bill is what spends the credit (analysis
+  // itself is free). Debited in the same transaction as the bill, with a
+  // conditional decrement (balance > 0), so a signed-in user can't go
+  // negative under concurrent confirms and never gets a bill without a
+  // matching debit; no balance means 402 and nothing is created.
+  const userId = getUserId(req);
+  if (userId) await ensureAccount(userId);
 
-    const people = await tx
-      .insert(billPeopleTable)
-      .values(
-        input.people.map((p, i) => ({
-          billId: bill.id,
-          name: p.name,
-          amountCents: split.perPersonCents[i],
-        })),
-      )
-      .returning();
+  let billId: number;
+  try {
+    billId = await db.transaction(async (tx) => {
+      if (userId) {
+        const debited = await tx
+          .update(accountsTable)
+          .set({ creditBalance: sql`${accountsTable.creditBalance} - 1` })
+          .where(
+            and(eq(accountsTable.userId, userId), gt(accountsTable.creditBalance, 0)),
+          )
+          .returning({ id: accountsTable.userId });
+        if (debited.length === 0) throw new InsufficientCreditsError();
+      }
 
-    for (const item of input.items) {
-      const [row] = await tx
-        .insert(billItemsTable)
+      const [bill] = await tx
+        .insert(billsTable)
         .values({
-          billId: bill.id,
-          description: item.description,
-          quantity: item.quantity,
-          unitPriceCents: item.unitPriceCents,
+          ownerToken: req.ownerToken,
+          userId,
+          restaurantName: input.restaurantName ?? null,
+          serviceFeePercent: input.serviceFeePercent,
+          couvertCents: input.couvertCents,
+          totalCents: split.totalCents,
         })
         .returning();
-      const sharers = [...new Set(item.personIndexes)];
-      if (sharers.length > 0) {
-        await tx.insert(itemAssignmentsTable).values(
-          sharers.map((idx) => ({ itemId: row.id, personId: people[idx].id })),
-        );
+
+      const people = await tx
+        .insert(billPeopleTable)
+        .values(
+          input.people.map((p, i) => ({
+            billId: bill.id,
+            name: p.name,
+            amountCents: split.perPersonCents[i],
+          })),
+        )
+        .returning();
+
+      for (const item of input.items) {
+        const [row] = await tx
+          .insert(billItemsTable)
+          .values({
+            billId: bill.id,
+            description: item.description,
+            quantity: item.quantity,
+            unitPriceCents: item.unitPriceCents,
+          })
+          .returning();
+        const sharers = [...new Set(item.personIndexes)];
+        if (sharers.length > 0) {
+          await tx.insert(itemAssignmentsTable).values(
+            sharers.map((idx) => ({ itemId: row.id, personId: people[idx].id })),
+          );
+        }
       }
+      return bill.id;
+    });
+  } catch (err) {
+    if (err instanceof InsufficientCreditsError) {
+      res.status(402).json({
+        message: "Seus créditos acabaram. Compre mais para fechar a conta.",
+      });
+      return;
     }
-    return bill.id;
-  });
+    throw err;
+  }
 
   const [bill] = await db.select().from(billsTable).where(eq(billsTable.id, billId));
   const [full] = await loadBills([bill]);

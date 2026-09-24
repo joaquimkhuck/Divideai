@@ -26,7 +26,7 @@ O app elimina a conta de cabeça: uma foto da conta vira uma lista de itens edit
 
 ### Princípios de produto
 
-- **Créditos transparentes**: cada leitura de foto consome um crédito; revisão, divisão e cobrança não consomem créditos.
+- **Créditos transparentes**: o crédito é gasto ao confirmar a conta (fechar o rolê), não na leitura da foto — a leitura é livre para tentar, mas exige saldo positivo; revisão e divisão não consomem créditos à parte.
 - **Sem cadastro antes do primeiro resultado**: sessão anônima via cookie; quem abre o app chega ao valor por pessoa sem login.
 - **A soma sempre fecha**: os valores individuais batem com o total da conta, sem sobrar nem faltar centavo.
 
