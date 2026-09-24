@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { Camera, History, Images, UserRound } from "lucide-react";
+import { Camera as CameraIcon, History, Images, UserRound } from "lucide-react";
+import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 import { Button } from "@workspace/divide-ai-ds/components/ui/button";
 import { useGetStats, getGetStatsQueryKey } from "@workspace/api-client-react";
 import { PhoneShell } from "@/components/phone-shell";
@@ -8,6 +9,7 @@ import { useDraft } from "@/store/draft";
 import { fileToDownscaledBase64 } from "@/lib/image";
 import { formatCents } from "@/lib/money";
 import { useToast } from "@/hooks/use-toast";
+import { isNative } from "@/lib/native";
 import { cn } from "@workspace/divide-ai-ds/lib/utils";
 import { useAuth } from "@clerk/react";
 
@@ -36,8 +38,10 @@ export default function Home() {
   // Live viewfinder (iScanner style). Falls back to the file input when
   // the camera is unavailable or permission is denied. Only signed-in
   // users get a camera stream — signed-out users see a static CTA instead.
+  // No app nativo a câmera abre pelo plugin (@capacitor/camera) em vez de
+  // um preview ao vivo em WebView — este efeito nem inicia.
   useEffect(() => {
-    if (!isSignedIn) return;
+    if (!isSignedIn || isNative) return;
     let cancelled = false;
     async function start() {
       if (!navigator.mediaDevices?.getUserMedia) return;
@@ -91,9 +95,33 @@ export default function Home() {
     }
   };
 
+  // @capacitor/camera (R1): abre a câmera ou a galeria nativa do iOS e
+  // devolve a foto já em base64, redimensionada pelo plugin.
+  const capturarNativo = async (source: CameraSource) => {
+    if (!isSignedIn) {
+      goToSignIn();
+      return;
+    }
+    try {
+      const photo = await Camera.getPhoto({
+        resultType: CameraResultType.DataUrl,
+        source,
+        quality: 80,
+        width: MAX_SIDE,
+      });
+      if (photo.dataUrl) goToLeitura(photo.dataUrl);
+    } catch {
+      // Usuário cancelou ou negou a permissão — sem toast, sem ação.
+    }
+  };
+
   const captureFrame = () => {
     if (!isSignedIn) {
       goToSignIn();
+      return;
+    }
+    if (isNative) {
+      void capturarNativo(CameraSource.Camera);
       return;
     }
     const video = videoRef.current;
@@ -189,7 +217,7 @@ export default function Home() {
           )}
           {(!isSignedIn || !cameraReady) && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
-              <Camera className="size-8 text-background/70" />
+              <CameraIcon className="size-8 text-background/70" />
               {signedOut ? (
                 <>
                   <p className="px-8 text-sm text-background/70">
@@ -243,14 +271,18 @@ export default function Home() {
             onClick={captureFrame}
             className="size-[76px]"
           >
-            <Camera />
+            <CameraIcon />
           </Button>
           <Button
             variant="ghost"
             size="icon"
             aria-label="Escolher da galeria"
             data-testid="button-gallery"
-            onClick={() => (isSignedIn ? inputRef.current?.click() : goToSignIn())}
+            onClick={() => {
+              if (!isSignedIn) return goToSignIn();
+              if (isNative) return void capturarNativo(CameraSource.Photos);
+              inputRef.current?.click();
+            }}
             className="absolute right-4 size-12 rounded-full text-muted-foreground"
           >
             <Images className="size-5" />
