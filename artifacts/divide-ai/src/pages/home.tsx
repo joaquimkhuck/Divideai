@@ -195,7 +195,6 @@ export default function Home() {
           ref={inputRef}
           type="file"
           accept="image/*"
-          capture="environment"
           className="hidden"
           data-testid="input-photo"
           onChange={(e) => {
