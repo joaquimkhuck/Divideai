@@ -5,7 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 // direto só entra sem OpenRouter; o Claude fica de reserva.
 const openrouterKey = process.env.OPENROUTER_API_KEY;
 const openrouterModel = process.env.OPENROUTER_MODEL || "google/gemini-3.5-flash";
-const OPENROUTER_TIMEOUT_MS = 30_000;
+const OPENROUTER_TIMEOUT_MS = 20_000;
 const geminiKey = process.env.GEMINI_API_KEY;
 const geminiModel = process.env.GEMINI_MODEL || "gemini-3.5-flash";
 const anthropicKey = process.env.ANTHROPIC_API_KEY_2;
@@ -99,7 +99,7 @@ async function readWithGemini(mimeType: string, data: string): Promise<string> {
 async function readWithClaude(mimeType: string, data: string): Promise<string> {
   const client = new Anthropic({ apiKey: anthropicKey });
   const response = await client.messages.create({
-    model: "claude-sonnet-4-5",
+    model: "claude-sonnet-5",
     max_tokens: 4096,
     messages: [
       {
