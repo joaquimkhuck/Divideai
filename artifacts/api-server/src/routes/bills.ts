@@ -115,7 +115,7 @@ async function loadBills(bills: BillRow[]) {
 }
 
 // User-keyed limit (IP fallback) so minting new owner cookies cannot bypass it.
-const analyzeLimiter = rateLimit({ max: 10, windowMs: 60 * 60 * 1000 });
+const analyzeLimiter = rateLimit({ max: 100, windowMs: 60 * 60 * 1000 });
 
 router.post("/bills/analyze", requireAuth, analyzeLimiter, async (req, res) => {
   // Credit model: the photo read itself is free to try; the credit is spent

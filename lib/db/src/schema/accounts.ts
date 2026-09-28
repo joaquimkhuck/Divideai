@@ -2,7 +2,7 @@ import { pgTable, text, integer, timestamp, check } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 /** Credits granted when an account is created (first analyses on the house). */
-export const INITIAL_CREDITS = 3;
+export const INITIAL_CREDITS = 1000;
 
 /**
  * Account profile for signed-in users (Clerk user id as primary key).
