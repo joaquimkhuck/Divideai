@@ -7,7 +7,11 @@ interface Bucket {
 
 /**
  * Minimal in-memory fixed-window rate limiter for expensive endpoints.
- * Keys on client IP (cannot be reset by minting a new owner cookie).
+ * Keys on the signed-in Clerk user id (cannot be reset by minting a new
+ * owner cookie), falling back to client IP for anonymous requests. There is
+ * no `trust proxy` set on the app, and in production Caddy proxies to this
+ * process over 127.0.0.1, so req.ip alone would be the same loopback
+ * address for every request — keying on userId first avoids that.
  * The photo read (POST /bills/analyze) no longer debits a credit — the
  * credit is spent on confirm (POST /bills) instead — so this limiter is the
  * only thing capping how many paid AI calls a signed-in account can trigger
@@ -24,7 +28,7 @@ export function rateLimit(opts: { max: number; windowMs: number }) {
     if (buckets.size > 10_000) {
       for (const [k, b] of buckets) if (b.resetAt <= now) buckets.delete(k);
     }
-    const key = req.ip ?? "unknown";
+    const key = req.userId ?? req.ip ?? "unknown";
     const bucket = buckets.get(key);
     if (!bucket || bucket.resetAt <= now) {
       buckets.set(key, { count: 1, resetAt: now + opts.windowMs });

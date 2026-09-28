@@ -114,7 +114,7 @@ async function loadBills(bills: BillRow[]) {
   });
 }
 
-// IP-keyed limit so minting new owner cookies cannot bypass it.
+// User-keyed limit (IP fallback) so minting new owner cookies cannot bypass it.
 const analyzeLimiter = rateLimit({ max: 10, windowMs: 60 * 60 * 1000 });
 
 router.post("/bills/analyze", requireAuth, analyzeLimiter, async (req, res) => {
