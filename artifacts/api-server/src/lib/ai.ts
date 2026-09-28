@@ -164,11 +164,26 @@ export async function analyzeBillImage(
   }
 
   const items = (obj.items as Record<string, unknown>[])
-    .map((it) => ({
-      description: String(it.description ?? "").trim(),
-      quantity: Math.max(1, Math.round(Number(it.quantity) || 1)),
-      unitPriceCents: Math.max(0, Math.round(Number(it.unitPriceCents) || 0)),
-    }))
+    .map((it) => {
+      const description = String(it.description ?? "").trim();
+      const quantity = Number(it.quantity) || 1;
+      const unitPriceCents = Math.max(0, Number(it.unitPriceCents) || 0);
+      // Quantidade fracionada é peso (self-service a quilo: 1,584 kg). A
+      // quantidade é inteira no banco, então vira 1 unidade com o valor da linha.
+      if (quantity > 0 && !Number.isInteger(quantity)) {
+        const peso = quantity.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
+        return {
+          description: description ? `${description} (${peso})` : "",
+          quantity: 1,
+          unitPriceCents: Math.round(quantity * unitPriceCents),
+        };
+      }
+      return {
+        description,
+        quantity: Math.max(1, Math.round(quantity)),
+        unitPriceCents: Math.round(unitPriceCents),
+      };
+    })
     .filter((it) => it.description.length > 0);
 
   if (items.length === 0) throw new BillReadError("unreadable");
