@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { CheckCircle2, ChevronLeft, CreditCard } from "lucide-react";
 import { useLocation } from "wouter";
+import { useAuth } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetCreditsCheckoutSessionQueryKey,
@@ -15,9 +16,12 @@ export default function CreditosSucesso() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const sessionId = new URLSearchParams(window.location.search).get("session_id") ?? "";
+  // Na volta do Stripe a página recarrega do zero: consultar antes do Clerk
+  // renovar a sessão dá 401 e o pagamento aparece como não confirmado.
+  const { isLoaded, isSignedIn } = useAuth();
   const { data, isLoading, isError } = useGetCreditsCheckoutSession(sessionId, {
     query: {
-      enabled: Boolean(sessionId),
+      enabled: Boolean(sessionId) && isLoaded && Boolean(isSignedIn),
       retry: false,
       queryKey: getGetCreditsCheckoutSessionQueryKey(sessionId),
     },
@@ -43,7 +47,7 @@ export default function CreditosSucesso() {
       </button>
 
       <div className="flex flex-1 flex-col items-center justify-center text-center">
-        {isLoading ? (
+        {!isLoaded || isLoading ? (
           <>
             <div className="h-16 w-16 animate-pulse rounded-full bg-secondary" />
             <div className="mt-6 h-8 w-56 animate-pulse rounded-full bg-secondary" />
