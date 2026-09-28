@@ -1,7 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-// Leitura da conta: Gemini é o principal; o Claude entra de reserva quando o
-// Gemini falha (503 de demanda alta e 429 de cota apareceram nos testes).
+// Leitura da conta: Gemini via OpenRouter é o principal (a chave direta do
+// Gemini no plano grátis falhou em 73% das chamadas com 503/timeout); Gemini
+// direto só entra sem OpenRouter; o Claude fica de reserva.
+const openrouterKey = process.env.OPENROUTER_API_KEY;
+const openrouterModel = process.env.OPENROUTER_MODEL || "google/gemini-3.5-flash";
+const OPENROUTER_TIMEOUT_MS = 30_000;
 const geminiKey = process.env.GEMINI_API_KEY;
 const geminiModel = process.env.GEMINI_MODEL || "gemini-3.5-flash";
 const anthropicKey = process.env.ANTHROPIC_API_KEY_2;
@@ -35,6 +39,35 @@ Regras:
 - "couvertCents": só o que estiver escrito como couvert, couvert artístico ou entrada; senão 0. Taxa de serviço e imposto NUNCA vão aqui. NÃO inclua como item.
 - "detectedTotalCents": total final impresso na conta, se legível; senão null.
 - Se a imagem NÃO for uma conta/comanda legível, responda: {"error":"unreadable"}`;
+
+async function readWithOpenRouter(mimeType: string, data: string): Promise<string> {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${openrouterKey}` },
+    body: JSON.stringify({
+      model: openrouterModel,
+      temperature: 0,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "image_url", image_url: { url: `data:${mimeType};base64,${data}` } },
+            { type: "text", text: PROMPT },
+          ],
+        },
+      ],
+    }),
+    signal: AbortSignal.timeout(OPENROUTER_TIMEOUT_MS),
+  });
+  if (!response.ok) {
+    throw new Error(`OpenRouter ${response.status}: ${(await response.text()).slice(0, 300)}`);
+  }
+  const body = (await response.json()) as { choices?: { message?: { content?: string } }[] };
+  const text = body.choices?.[0]?.message?.content ?? "";
+  if (!text) throw new Error("OpenRouter: resposta vazia");
+  return text;
+}
 
 async function readWithGemini(mimeType: string, data: string): Promise<string> {
   const response = await fetch(
@@ -94,20 +127,21 @@ async function readWithClaude(mimeType: string, data: string): Promise<string> {
 export async function analyzeBillImage(
   imageBase64: string,
 ): Promise<ExtractedBill> {
-  if (!geminiKey && !anthropicKey) {
-    throw new Error("GEMINI_API_KEY is not configured");
+  if (!openrouterKey && !geminiKey && !anthropicKey) {
+    throw new Error("OPENROUTER_API_KEY is not configured");
   }
   const match = imageBase64.match(/^data:(image\/\w+);base64,(.*)$/s);
   const mimeType = match?.[1] ?? "image/jpeg";
   const data = match?.[2] ?? imageBase64;
 
   let raw: string;
-  if (geminiKey) {
+  const primary = openrouterKey ? readWithOpenRouter : geminiKey ? readWithGemini : null;
+  if (primary) {
     try {
-      raw = await readWithGemini(mimeType, data);
+      raw = await primary(mimeType, data);
     } catch (err) {
       if (!anthropicKey) throw err;
-      console.warn("Gemini falhou, lendo com Claude:", String(err).slice(0, 160));
+      console.warn("Leitura principal falhou, lendo com Claude:", String(err).slice(0, 160));
       raw = await readWithClaude(mimeType, data);
     }
   } else {
